@@ -12,7 +12,7 @@ ToDo: add this
 - [ ] Pre-Processing opt. Transition Splitting (tA)
 - [ ] pipeline - global call method (TH,KS\\/TF)
 
-- [ ] adding Tasks (KS/\\TF)
+- [ ] adding Tasks to ToDo List(KS/\\TF)
 
 - [ ] MTP - presentation slides ready (A)
 
