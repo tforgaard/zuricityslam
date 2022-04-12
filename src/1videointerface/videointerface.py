@@ -1,7 +1,7 @@
 ##//ZuriCity SLAM Project Group#21 3D-Vision FS2022 ETH///////////////////////
 ##============================================================================
 ## Name        : videointerface.py
-## Author      : Tom Heine and Senthuran //TODO: add name Group#21 3DV ETH
+## Author      : Tom Heine and Senthuran Kalananthan Group#21 3DV ETH
 ## Created on  : 29.03.2022
 ## Description : This sub programm ist tasked to get video based on a search 
 ##               query given by a user and to store the results in a file.
@@ -76,19 +76,21 @@ def main():
     ##//Main-Code---------------------------------------------------------////
 
     #get query from user
-
-    inputtype = "w3w"
-    input = "///trailer.sung.believer"
+    inputtype = input("Select inputtype: ")
+    input_w = input("Enter " + inputtype + ": ")
+    #TODO: senturan raumt das auf
+    #inputtype = "w3w"
+    #input = "///trailer.sung.believer"
 
     #use query to get coordinates
     if inputtype == "coordinates":
-        thisLocationCO = input
+        thisLocationCO = input_w
     elif inputtype == "w3w":
         #get coordinates from w3w
-        thisLocationCO = w3w_to_CO(input)
+        thisLocationCO = w3w_to_CO(input_w)
     elif inputtype == "cityname":
         #get coordinates from google maps
-        thisLocationCO = cityname_to_CO(input)
+        thisLocationCO = cityname_to_CO(input_w)
     else:
         print("ERROR: inputtype not recognized")
         thisLocationCO = "47.371667, 8.542222"
@@ -135,7 +137,8 @@ def w3w_to_CO(input):
 # }
 
 def cityname_to_CO(cityname):
-    pass
+    print("not ready yet, use Zurich")
+    return "47.371667, 8.542222"
 
 
 ##//METHODES-YT-INTERFACE-------------------------------------------------////
@@ -210,10 +213,18 @@ def print_results():
 ##//METHODES-YT-DOWNLOADE-------------------------------------------------////
 
 def download_videos():
+    for count, video in enumerate(results_videoID):
+        yt = YouTube('http://youtube.com/watch?v=' + video)
+        yt.streams.get_highest_resolution().download()
+        break
+    pass
+    """
     for count, video in enumerate(results[0]):
         yt = YouTube('http://youtube.com/watch?v=' + video[0][count])
         yt.streams.get_highest_resolution().download()
+        break
     pass
+    """
 
 if __name__ == "__main__":
     main()
