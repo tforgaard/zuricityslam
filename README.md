@@ -16,6 +16,11 @@ ToDo: add this
 
 - [ ] MTP - presentation slides ready (A)
 
+## Meetings:
+[Supervisor Meeting 20220315](docu/meeting20220315.md)  
+[Team Meeting 20220315](docu/teammeeting20220315.md)  
+[Supervisor Meeting 20220412](docu/meeting20220412.md)
+
 ## Abbreviations:
 KS Kristoffer Steinsland
 SK Senthuran Kalananthan
