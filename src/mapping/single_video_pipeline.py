@@ -18,7 +18,7 @@ from src.mapping import pairs_from_sequence
 confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
 
-def main(base_dir, dataset, outputs, num_loc, pairing):
+def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
 
     # define paths
     images = base_dir / dataset / 'images-fps2'
@@ -40,19 +40,18 @@ def main(base_dir, dataset, outputs, num_loc, pairing):
 
     # ## Find image pairs either via sequential pairing, image retrieval or eventually both
 
+    def get_image_names(image_path):
+        image_list = list(Path(image_path).glob('*.jpg'))
+        image_list = [str(il.name) for il in image_list]
+        image_list = sorted(list(set(image_list)))
+        return image_list
+
     if pairing in confs['pairing']:
         if pairing == 'sequential':
-            def get_image_names(image_path):
-                image_list = list(Path(image_path).glob('*.jpg'))
-                image_list = [str(il.name) for il in image_list]
-                image_list = sorted(list(set(image_list)))
-                return image_list
-
             image_list = get_image_names(images)
-            print(image_list)
 
             pairs_from_sequence.main(
-                sfm_pairs, image_list, features=None, window_size=num_loc)
+                sfm_pairs, image_list, features=None, window_size=window_size, quadratic=True, N=5)
         elif pairing == 'retrieval':
             # We extract global descriptors with NetVLAD and find for each image the most similar ones.
             # TODO increase number of num mathced
@@ -61,8 +60,16 @@ def main(base_dir, dataset, outputs, num_loc, pairing):
             # TODO make a new pairs_from_retrieval that takes sequenciality (±10 images) and also does retrieval but NOT on the pairs already found from sequenciality
             pairs_from_retrieval.main(
                 retrieval_path, sfm_pairs, num_matched=num_loc)
-        elif pairing == 'retrieval+sequential':
-            raise NotImplementedError(f"TODO: implement retrieval+sequential")
+        elif pairing == 'sequential+retrieval':
+            retrieval_path = extract_features.main(
+                retrieval_conf, images, outputs)
+
+            image_list = get_image_names(images)
+
+            pairs_from_sequence.main(
+                sfm_pairs, image_list, features=None, window_size=window_size,
+                loop_closure=True, quadratic=True, retrieval_path=retrieval_path, N=5, num_loc=num_loc)
+
     else:
         raise ValueError(f'Unknown pairing method')
 
@@ -87,13 +94,15 @@ if __name__ == "__main__":
     parser.add_argument('--base_dir', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07',
                         help='base directory for datasets and outputs, default: %(default)s')
-    parser.add_argument('--dataset', type=Path, default='datasets/long_walk_zurich',
+    parser.add_argument('--dataset', type=Path, default='datasets/tiny_walk_zurich',
                         help='Path to the dataset, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='outputs/long_walk_zurich',
+    parser.add_argument('--outputs', type=Path, default='outputs/tiny_walk_zurich',
                         help='Path to the output directory, default: %(default)s')
-    parser.add_argument('--num_loc', type=int, default=20,
+    parser.add_argument('--window_size', type=int, default=5,
+                        help="Size of the window of images to match, default: %(default)s")
+    parser.add_argument('--num_loc', type=int, default=5,
                         help='Number of image pairs for loc, default: %(default)s')
-    parser.add_argument('--pairing', type=str, default='sequential',
+    parser.add_argument('--pairing', type=str, default='sequential+retrieval',
                         help=f'Pairing method, default: %(default)s', choices=confs['pairing'])
     args = parser.parse_args()
     # ## Run mapping
