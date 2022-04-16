@@ -1,26 +1,32 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# Taken from https://github.com/cvg/Hierarchical-Localization/pull/175/files
-# All credit to https://github.com/cduguet
+# Based on https://github.com/cvg/Hierarchical-Localization/pull/175/files
+# credit to https://github.com/cduguet
 
 
+import os
 import argparse
 import collections.abc as collections
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Dict, List, Union, Optional
 
 from hloc import logger
-from hloc.utils.parsers import parse_image_lists
+from hloc.utils.parsers import parse_image_lists, parse_retrieval
 from hloc.utils.io import list_h5_names
+from hloc import pairs_from_retrieval
 
 
 def main(
         output: Path,
         image_list: Optional[Union[Path, List[str]]] = None,
         features: Optional[Path] = None,
-        window_size: Optional[int]= 2,
-        loop: bool = False):
+        window_size: Optional[int] = 5,
+        quadratic: bool = False,
+        loop_closure: bool = False,
+        retrieval_path: Optional[Union[Path, str]] = None,
+        N: Optional[int] = 5,
+        num_loc: Optional[int] = 5):
 
     if image_list is not None:
         if isinstance(image_list, (str, Path)):
@@ -38,15 +44,43 @@ def main(
     pairs = []
     tot = len(names_q)
 
-    if loop:
-        for i in range(tot):
-            for j in range(i + 1, i + window_size):
-                pairs.append((names_q[i - tot], names_q[j - tot]))
+    if loop_closure:
+        # TODO raise an error if not found!
+        # retrieval_path = extract_features.main()
+
+        retrieval_pairs_tmp = output.parent / f'retrieval-pairs-tmp.txt'
+
+        for i in range(tot - 1):
+            for j in range(i + 1, min(i + window_size, tot)):
+                pairs.append((names_q[i], names_q[j]))
+
+                if quadratic:
+                    q = 2**(j-i)
+                    if q > window_size and i + q < tot:
+                        pairs.append((names_q[i], names_q[i + q]))
+
+            if loop_closure and i % N == 0:
+                pairs_from_retrieval.main(
+                    retrieval_path, retrieval_pairs_tmp, num_matched=num_loc, query_list=[
+                        names_q[i]],
+                    db_list=names_q[:max(i - window_size, 0)] + names_q[i + window_size:])
+                retrieval = parse_retrieval(retrieval_pairs_tmp)
+
+                for key, val in retrieval.items():
+                    for match in val:
+                        pairs.append((key, match))
+
+        os.unlink(retrieval_pairs_tmp)
 
     else:
         for i in range(tot - 1):
-            for j in range(i + 1, min(i + window_size, tot)): 
+            for j in range(i + 1, min(i + window_size, tot)):
                 pairs.append((names_q[i], names_q[j]))
+
+                if quadratic:
+                    q = 2**(j-i)
+                    if q > window_size and i + q < tot:
+                        pairs.append((names_q[i], names_q[i + q]))
 
     logger.info(f'Found {len(pairs)} pairs.')
     with open(output, 'w') as f:
@@ -54,11 +88,22 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Create a list of image pairs based on the sequence of images on alphabetic order")
+    parser = argparse.ArgumentParser(
+        description="Create a list of image pairs based on the sequence of images on alphabetic order")
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--image_list', type=Path)
     parser.add_argument('--features', type=Path)
-    parser.add_argument('--window_size', type=int, default=4, help="Size of the window of images to match")
-    parser.add_argument('--loop', action="store_true", help="Create a loop sequence (last elements matched with first ones)")
+    parser.add_argument('--window_size', type=int, default=5,
+                        help="Size of the window of images to match, default: %(default)s")
+    parser.add_argument('--quadratic', action="store_true",
+                        help="Pair elements with quadratic overlap")
+    parser.add_argument('--loop_closure', action="store_true",
+                        help="Create a loop sequence (last elements matched with first ones)")
+    parser.add_argument('--retrieval_path', type=Path,
+                        help="Path to retrieval features, necessary for loop closure")
+    parser.add_argument('--N', type=int, default=5,
+                        help="Trigger retrieval every N frames, default: %(default)s")
+    parser.add_argument('--num_loc', type=int, default=5,
+                        help='Number of image pairs for loc, default: %(default)s')
     args = parser.parse_args()
     main(**args.__dict__)
