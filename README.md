@@ -10,10 +10,17 @@ ToDo: add this
 - [ ] video interface - Interface Method (SH)
 - [ ] Pre-Processing Frame Splitting (TH)
 - [ ] Pre-Processing opt. Transition Splitting (tA)
+- [x] Mapping - Add sequential pairing (KS\\/TF)
+- [x] Mapping - Make callable main function (KS\\/TF)
+- [x] Mapping - Merge sequential pairing and retrieval (global) pairing (KS\\/TF)
+- [ ] Mapping - Make optimized sequential and retrieval (global) pairing (KS\\/TF)
+- [ ] Mapping - Sucessfully run mapping on a complete zurich city walk sequence (KS\\/TF)
 - [ ] pipeline - global call method (TH,KS\\/TF)
 
-- [ ] adding Tasks to ToDo List(KS/\\TF)
-
+- [x] adding Tasks to ToDo List(KS/\\TF)
+- [ ] add necesseary requirements for this project (tA)
+- [ ] make it an installable project (tA)
+- [ ] try to follow [PEP8 style guidelines](https://peps.python.org/pep-0008/), install i.e. autopep8 (tA)
 - [ ] MTP - presentation slides ready (A)
 
 ## Meetings:
