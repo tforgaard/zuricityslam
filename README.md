@@ -16,6 +16,9 @@ Install required python packages, if they are not already installed:
 ```
 $ pip3 install -r requirements.txt    
 ```
+There has been a bug in the pytube library since 17.4.22. In order to fix the bug, please follow the instructions from eroc1234: https://stackoverflow.com/questions/68945080/pytube-exceptions-regexmatcherror-get-throttling-function-name-could-not-find. 
+
+TODO: Pytube works, but look for alternative if there is no new release
 
 ## Run this project
 TODO:
