@@ -1,0 +1,3 @@
+[submodule "hloc_fork"]
+	path = hloc_fork
+	url = https://gitlab.ethz.ch/z-ricityslam/hloc_fork.git
