@@ -7,14 +7,14 @@ Project is created with
 * Python: 3.9.8
 
 ## Set up
-Install required python packages, if they are not already installed:
-```
-$ pip3 install -r requirements.txt    
-```
-
 Clone this repository:
 ```
 $ git clone git@gitlab.ethz.ch:z-ricityslam/zuricityslam.git
+```
+
+Install required python packages, if they are not already installed:
+```
+$ pip3 install -r requirements.txt    
 ```
 
 ## Run this project
