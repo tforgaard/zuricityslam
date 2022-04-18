@@ -84,7 +84,7 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
 
     # TODO add camera mode not equal to AUTO!
     model = reconstruction.main(
-        sfm_dir, images, sfm_pairs, feature_path, match_path)
+       sfm_dir, images, sfm_pairs, feature_path, match_path)
 
     return model, outputs, images
 

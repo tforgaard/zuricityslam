@@ -14,7 +14,7 @@ from typing import Dict, List, Union, Optional
 from hloc import logger
 from hloc.utils.parsers import parse_image_lists, parse_retrieval
 from hloc.utils.io import list_h5_names
-from hloc import pairs_from_retrieval
+from . import pairs_from_retrieval_sequential
 
 
 def main(
@@ -44,43 +44,31 @@ def main(
     pairs = []
     tot = len(names_q)
 
+    for i in range(tot - 1):
+        for j in range(i + 1, min(i + window_size, tot)):
+            pairs.append((names_q[i], names_q[j]))
+
+            if quadratic:
+                q = 2**(j-i)
+                if q > window_size and i + q < tot:
+                    pairs.append((names_q[i], names_q[i + q]))
+
     if loop_closure:
         # TODO raise an error if not found!
         # retrieval_path = extract_features.main()
 
         retrieval_pairs_tmp = output.parent / f'retrieval-pairs-tmp.txt'
 
-        for i in range(tot - 1):
-            for j in range(i + 1, min(i + window_size, tot)):
-                pairs.append((names_q[i], names_q[j]))
+        pairs_from_retrieval_sequential.main(
+            retrieval_path, retrieval_pairs_tmp, num_matched=num_loc, window_size=window_size)
+        
+        retrieval = parse_retrieval(retrieval_pairs_tmp)
 
-                if quadratic:
-                    q = 2**(j-i)
-                    if q > window_size and i + q < tot:
-                        pairs.append((names_q[i], names_q[i + q]))
-
-            if loop_closure and i % N == 0:
-                pairs_from_retrieval.main(
-                    retrieval_path, retrieval_pairs_tmp, num_matched=num_loc, query_list=[
-                        names_q[i]],
-                    db_list=names_q[:max(i - window_size, 0)] + names_q[i + window_size:])
-                retrieval = parse_retrieval(retrieval_pairs_tmp)
-
-                for key, val in retrieval.items():
-                    for match in val:
-                        pairs.append((key, match))
+        for key, val in retrieval.items():
+            for match in val:
+                pairs.append((key, match))
 
         os.unlink(retrieval_pairs_tmp)
-
-    else:
-        for i in range(tot - 1):
-            for j in range(i + 1, min(i + window_size, tot)):
-                pairs.append((names_q[i], names_q[j]))
-
-                if quadratic:
-                    q = 2**(j-i)
-                    if q > window_size and i + q < tot:
-                        pairs.append((names_q[i], names_q[i + q]))
 
     logger.info(f'Found {len(pairs)} pairs.')
     with open(output, 'w') as f:
