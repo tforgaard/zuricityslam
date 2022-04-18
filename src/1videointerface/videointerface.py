@@ -11,6 +11,9 @@
 ##//INCLUDES//////////////////////////////////////////////////////////////////
 ##//INCLUDE-System-relevant-libs------------------------------------------////
 import numpy as np
+import argparse
+import os
+from pathlib import Path
 
 ##//INCLUDE-Api-Client-to-interface-google-API----------------------------////
 from apiclient.discovery import build #pip install google-api-python-client
@@ -33,7 +36,7 @@ from oauth2client.tools import argparser #pip install oauth2client
 ##//METHODES//////////////////////////////////////////////////////////////////
 
 ##//METHODE-MAIN----------------------------------------------------------////
-def main():
+def main(args):
     ##//VARIABLES/////////////////////////////////////////////////////////////
     #TODO: if someone knows a better way to place global variables please change it
     ##//VARIABLES-APIs----------------------------------------------------////
@@ -76,21 +79,18 @@ def main():
     ##//Main-Code---------------------------------------------------------////
 
     #get query from user
-    inputtype = input("Select inputtype: ")
-    input_w = input("Enter " + inputtype + ": ")
-    #TODO: senturan raumt das auf
-    #inputtype = "w3w"
-    #input = "///trailer.sung.believer"
+    inputtype = args.input_type
+    input = args.query
 
     #use query to get coordinates
     if inputtype == "coordinates":
-        thisLocationCO = input_w
+        thisLocationCO = input
     elif inputtype == "w3w":
         #get coordinates from w3w
-        thisLocationCO = w3w_to_CO(input_w)
+        thisLocationCO = w3w_to_CO('///'+input)
     elif inputtype == "cityname":
         #get coordinates from google maps
-        thisLocationCO = cityname_to_CO(input_w)
+        thisLocationCO = cityname_to_CO(input)
     else:
         print("ERROR: inputtype not recognized")
         thisLocationCO = "47.371667, 8.542222"
@@ -107,10 +107,10 @@ def main():
 
     #order results found
     order_results()
-    print_results()
+    #print_results()
 
     #store results to files
-    #download_videos() 
+    download_videos(args.base_dir, args.download_fol) 
     #TODO: test implementation and add filter for only multiple hits / good ranking
       
 ##//METHODES-GEOPOS-------------------------------------------------------////
@@ -168,9 +168,6 @@ def add_video_to_result(result, rank):
     global result_hits
 
     if result['id']['videoId'] in results_videoID:
-    #if np.any(results[0] == result['id']['videoId']):
-        #video allready known improve rank
-        #results[2][results[0] == result] += rank
         results_rank[results_videoID == result['id']['videoId']] += rank
         result_hits[results_videoID == result['id']['videoId']] += 1
     else:
@@ -212,19 +209,27 @@ def print_results():
 
 ##//METHODES-YT-DOWNLOADE-------------------------------------------------////
 
-def download_videos():
-    for count, video in enumerate(results_videoID):
+def download_videos(base_dir, folder):
+    path = os.path.join(base_dir, folder)
+    Path(path).mkdir(parents=True, exist_ok=True)
+    
+    for video in results_videoID:
         yt = YouTube('http://youtube.com/watch?v=' + video)
-        yt.streams.get_highest_resolution().download()
-        break
-    pass
-    """
-    for count, video in enumerate(results[0]):
-        yt = YouTube('http://youtube.com/watch?v=' + video[0][count])
-        yt.streams.get_highest_resolution().download()
-        break
-    pass
-    """
+        yt.streams.get_highest_resolution().download(path)
+        
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--base_dir', type=Path,
+                        default='/cluster/project/infk/courses/252-0579-00L/group',
+                        help='base directory for datasets and outputs, default: %(default)s')
+    parser.add_argument('--download_fol', type=Path,
+                        default='videos',
+                        help='folder name for downloading videos')                    
+    parser.add_argument('--input_type', type=str, default='w3w',
+                        help='inputtype of the query: coordinates, w3w, cityname')
+    parser.add_argument('--query', type=str, default='trailer.sung.believer',
+                        help='search query to get video')
+    args = parser.parse_args()
+
+    main(args)
