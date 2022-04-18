@@ -2,12 +2,33 @@
 ## Introduction
 ToDo: add this
 
+## Prerequisites
+Project is created with 
+* Python: 3.9.8
+
+## Set up
+Install required python packages, if they are not already installed:
+```
+$ pip3 install -r requirements.txt    
+```
+
+Clone this repository:
+```
+$ git clone git@gitlab.ethz.ch:z-ricityslam/zuricityslam.git
+```
+
+## Run this project
+TODO:
+```
+$ python3 src/1videointerface/videointerface.py --base_dir $path --input_type coordinates --query 47.371667,8.542222
+```
+
 ## ToDo-List:
 
 - [ ] video interface - Place search (TH)
-- [ ] video interface - Download method clean up (SH)
-- [ ] video interface - Installer for Python libraries (SH)
-- [ ] video interface - Interface Method (SH)
+- [x] video interface - Download method clean up (SH)
+- [x] video interface - Installer for Python libraries (SH)
+- [x] video interface - Interface Method (SH)
 - [ ] Pre-Processing Frame Splitting (TH)
 - [ ] Pre-Processing opt. Transition Splitting (tA)
 - [x] Mapping - Add sequential pairing (KS\\/TF)
