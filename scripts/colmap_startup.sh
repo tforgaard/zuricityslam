@@ -30,7 +30,8 @@ export CERES_DIR=$DATA/dev/ceres-solver-1.14.0/build
 
 export Qt5_DIR=$DATA/dev/qt5-build/qtbase/lib/cmake/Qt5
 
-export COLMAP_PATH=$DATA/dev/colmap/build/src/exe
+export COLMAP_PATH=$DATA/colmap/usr/local/bin
+export COLMAP_DIR=$DATA/colmap/usr/local/share/colmap
 
 export CMAKE_PREFIX_PATH=$CMAKE_PREFIX_PATH:$FREEIMAGE_DIR
 
