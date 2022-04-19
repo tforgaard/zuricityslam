@@ -110,7 +110,7 @@ def main(args):
     #print_results()
 
     #store results to files
-    #download_videos(args.base_dir, args.download_fol) 
+    download_videos(args.base_dir, args.download_fol) 
     preprocessing(args.base_dir, args.download_fol) 
     #TODO: test implementation and add filter for only multiple hits / good ranking
       
