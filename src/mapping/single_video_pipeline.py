@@ -6,10 +6,11 @@
 from pathlib import Path
 import argparse
 import matplotlib.pyplot as plt
+from pycolmap import CameraMode
 
 from hloc import extract_features, match_features, reconstruction, visualization, pairs_from_retrieval
 from hloc.utils import viz
-from src.mapping import pairs_from_sequence
+import pairs_from_sequence
 
 # Run SfM reconstruction from scratch on a set of images.
 
@@ -31,7 +32,7 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
     feature_conf = extract_features.confs['superpoint_aachen']
     matcher_conf = match_features.confs['superglue']
 
-    outputs.mkdir(exist_ok=True, parents=True)
+    outputs.mkdir(exist_ok=True, parents=True, mode=777)
     # ref_sfm = outputs / 'sfm_superpoint+superglue'
     # ref_sfm_scaled = outputs / 'sfm_sift_scaled'
     # query_list = outputs / 'query_list_with_intrinsics.txt'
@@ -84,7 +85,7 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
 
     # TODO add camera mode not equal to AUTO!
     model = reconstruction.main(
-        sfm_dir, images, sfm_pairs, feature_path, match_path)
+       sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE)
 
     return model, outputs, images
 
