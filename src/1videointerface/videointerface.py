@@ -15,7 +15,7 @@ import argparse
 import os
 from pathlib import Path
 import ffmpeg
-import youtube_dl
+import yt_dlp
 
 ##//INCLUDE-Api-Client-to-interface-google-API----------------------------////
 from apiclient.discovery import build #pip install google-api-python-client
@@ -210,26 +210,20 @@ def print_results():
 
 ##//METHODES-YT-DOWNLOADE-------------------------------------------------////
 def download_videos(base_dir, folder):
-    
+    print_results()
     path = os.path.join(base_dir, folder)
     Path(path).mkdir(parents=True, exist_ok=True)
-    for video in results_videoID:
-        yt = YouTube('http://youtube.com/watch?v=' + video)
-        yt.streams.get_highest_resolution().download(path)
-    
-    """
+   
     ydl_opts = {
-    'format': 'bestvideo/best',
-    'videoformat':'mp4',
-    'outtmpl': path + '/%(id)s',
-    'noplaylist' : True,        
+    'format': 'bv', # select best video
+    'paths': {'home': f'{path}'}, # home is download directory...
+    'output': {'home': '%(id)s'}  #
     }
-
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         for video in results_videoID:
             ydl.download(['https://www.youtube.com/watch?v='+ video])
             break
-    """
+   
 
 ##//METHODES-PREPROESSING-------------------------------------------------////
 def frame_capture(video_path, image_folder):
