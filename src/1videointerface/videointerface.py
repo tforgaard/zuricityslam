@@ -259,7 +259,7 @@ def preprocessing(base_dir, folder):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--base_dir', type=Path,
-                        default='/Users/Senthuran/Desktop/Master_ETH/3D_Vision/zuricityslam',
+                        default='/cluster/project/infk/courses/252-0579-00L/group07',
                         help='base directory for datasets and outputs, default: %(default)s')
     parser.add_argument('--download_fol', type=Path,
                         default='videos',
