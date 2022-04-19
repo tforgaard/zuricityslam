@@ -4,18 +4,25 @@ ToDo: add this
 
 ## Prerequisites
 Project is created with 
-* Python: 3.9.8
+* Python: 3.7.12
 
 ## Set up
 Clone this repository:
 ```
-$ git clone git@gitlab.ethz.ch:z-ricityslam/zuricityslam.git
+$ git clone --recursive git@gitlab.ethz.ch:z-ricityslam/zuricityslam.git
 ```
+
+Install hloc-fork
+```
+$ cd hloc_fork
+$ python3 -m pip install -e .
+``` 
 
 Install required python packages, if they are not already installed:
 ```
 $ pip3 install -r requirements.txt    
 ```
+
 There has been a bug in the pytube library since 17.4.22. In order to fix the bug, please follow the instructions from eroc1234: https://stackoverflow.com/questions/68945080/pytube-exceptions-regexmatcherror-get-throttling-function-name-could-not-find. 
 
 TODO: Pytube works, but look for alternative if there is no new release
