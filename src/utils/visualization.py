@@ -5,13 +5,19 @@ from matplotlib import cm
 import numpy as np
 from pathlib import Path
 import pycolmap
+import argparse
 # from multiprocessing import Pool, cpu_count, Process
 # import functools
 
 from hloc.utils.viz import (
-        plot_video_frames, make_video, plot_keypoints, add_text)
+        plot_keypoints, add_text)
 from hloc.utils.io import read_image
 
+#TODO add logging info
+#TODO add dpi setting to argparse
+#TODO specify if tmp frames should be deleted
+#TODO try to do plot video frames in parallel
+#TODO use ffmpeg for video creation?
 
 def plot_video_frames(sfm_data, save_dir='./', titles=None, cmaps='gray', dpi=100):
     """Plot a set of images sequentially.
@@ -70,7 +76,7 @@ def make_video(video_frames, output, fps=2):
 
     video = cv2.VideoWriter(str(output), 0, fps, (width,height))
 
-    for image in images:
+    for image in images: #TODO add tqdm progress bar
         video.write(cv2.imread(str(video_frames / image)))
 
     cv2.destroyAllWindows()
@@ -100,7 +106,7 @@ def visualize_sfm_2d_video(reconstruction, image_dir, output, color_by='visibili
 
     def sfm_data(image_list, reconstruction, color_by):
         n = 0
-        for i in image_list:
+        for i in image_list: # TODO add tqdm progress bar
             image = reconstruction.images[i]
             keypoints = np.array([p.xy for p in image.points2D])
             visible = np.array([p.has_point3D() for p in image.points2D])
@@ -134,9 +140,26 @@ def visualize_sfm_2d_video(reconstruction, image_dir, output, color_by='visibili
 
 
 if __name__ == '__main__':
-    base = Path('/cluster/project/infk/courses/252-0579-00L/group07')
-    reconstruction = base /'outputs/loop_walk_zurich_sequential+retrieval_fps2/sfm_superpoint+superglue/colmap/0'
-    image_dir = base / 'datasets/loop_walk_zurich/images-fps2/'
-    output = base / 'outputs/loop_walk_zurich_sequential+retrieval_fps2/sfm_superpoint+superglue/colmap/0'
-    #stop=30
-    visualize_sfm_2d_video(reconstruction, image_dir, output) #, stop=stop)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--base_dir', type=Path,
+                        default='/cluster/project/infk/courses/252-0579-00L/group07',
+                        help='base directory for datasets and outputs, default: %(default)s')
+    parser.add_argument('--reconstruction', type=Path,
+                        default='outputs/4k/loop_walk_zurich_sequential+retrieval_fps2/sfm_superpoint+superglue/colmap/0',
+                        help='patch to reconstruction from base directory, default: %(default)s')
+    parser.add_argument('--dataset', type=Path, default='datasets/4k/loop_walk_zurich',
+                        help='Path to the dataset, default: %(default)s')
+    parser.add_argument('--outputs', type=Path, default='outputs/4k/loop_walk_zurich',
+                        help='Path to the output directory, default: %(default)s')
+    parser.add_argument('--stop', type=int, default=None,
+                        help='specify stop frame, default: %(default)s')
+    parser.add_argument('--start', type=int, default=None,
+                        help='specify start frame, default: %(default)s')
+    args = parser.parse_args()
+    
+    base = Path(args.base_dir)
+    reconstruction = base / args.reconstruction
+    image_dir = base / args.dataset / 'images-fps2'
+    output = base / args.reconstruction
+
+    visualize_sfm_2d_video(reconstruction, image_dir, output, stop=args.stop, start=args.start)
