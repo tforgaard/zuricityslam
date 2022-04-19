@@ -14,7 +14,7 @@ from typing import Dict, List, Union, Optional
 from hloc import logger
 from hloc.utils.parsers import parse_image_lists, parse_retrieval
 from hloc.utils.io import list_h5_names
-from . import pairs_from_retrieval_sequential
+import pairs_from_retrieval_sequential
 
 
 def main(
