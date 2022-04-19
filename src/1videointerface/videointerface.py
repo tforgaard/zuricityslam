@@ -14,6 +14,8 @@ import numpy as np
 import argparse
 import os
 from pathlib import Path
+import ffmpeg
+import youtube_dl
 
 ##//INCLUDE-Api-Client-to-interface-google-API----------------------------////
 from apiclient.discovery import build #pip install google-api-python-client
@@ -31,8 +33,6 @@ from oauth2client.tools import argparser #pip install oauth2client
 
 ##//DEFINES///////////////////////////////////////////////////////////////////
 
-
-
 ##//METHODES//////////////////////////////////////////////////////////////////
 
 ##//METHODE-MAIN----------------------------------------------------------////
@@ -42,7 +42,7 @@ def main(args):
     ##//VARIABLES-APIs----------------------------------------------------////
     # Get credentials and create an API client
     global youTubeApiKey
-    youTubeApiKey="AIzaSyDhCrElzVvJrLSf1R7PAVNJHKYVOpaQDX8" #Input your youTubeApiKey
+    youTubeApiKey="AIzaSyBh0zDXZq44mxmMq2p7eUhZnad_ElXgA6A" #Input your youTubeApiKey
     global youtubeAPI
     youtubeAPI=build('youtube','v3',developerKey=youTubeApiKey)
 
@@ -110,7 +110,8 @@ def main(args):
     #print_results()
 
     #store results to files
-    download_videos(args.base_dir, args.download_fol) 
+    #download_videos(args.base_dir, args.download_fol) 
+    preprocessing(args.base_dir, args.download_fol) 
     #TODO: test implementation and add filter for only multiple hits / good ranking
       
 ##//METHODES-GEOPOS-------------------------------------------------------////
@@ -208,20 +209,57 @@ def print_results():
     pass
 
 ##//METHODES-YT-DOWNLOADE-------------------------------------------------////
-
 def download_videos(base_dir, folder):
+    
     path = os.path.join(base_dir, folder)
     Path(path).mkdir(parents=True, exist_ok=True)
-    
     for video in results_videoID:
         yt = YouTube('http://youtube.com/watch?v=' + video)
         yt.streams.get_highest_resolution().download(path)
-        
+    
+    """
+    ydl_opts = {
+    'format': 'bestvideo/best',
+    'videoformat':'mp4',
+    'outtmpl': path + '/%(id)s',
+    'noplaylist' : True,        
+    }
+
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        for video in results_videoID:
+            ydl.download(['https://www.youtube.com/watch?v='+ video])
+            break
+    """
+
+##//METHODES-PREPROESSING-------------------------------------------------////
+def frame_capture(video_path, image_folder):
+    try:
+        ffmpeg.input(video_path) \
+            .filter('fps', fps='2') \
+            .output(image_folder+'/img-%d.jpg', start_number=0) \
+            .overwrite_output() \
+            .run(quiet=True)
+    except ffmpeg.Error as e:
+        print('stdout:', e.stdout.decode('utf8'))
+        print('stderr:', e.stderr.decode('utf8'))
+        raise e
+
+def preprocessing(base_dir, folder):
+    path = os.path.join(base_dir, folder)
+
+    for count, file in enumerate(os.listdir(path)):
+        if file.endswith(".mp4"):
+            video_path = os.path.join(path, file) # video_path
+            image_folder = "video" + str(count) # folder name for the images 
+            image_path = os.path.join(base_dir, "datasets", image_folder)
+            Path(image_path).mkdir(parents=True, exist_ok=True)
+            frame_capture(video_path, image_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--base_dir', type=Path,
-                        default='/cluster/project/infk/courses/252-0579-00L/group',
+                        default='/Users/Senthuran/Desktop/Master_ETH/3D_Vision/zuricityslam',
                         help='base directory for datasets and outputs, default: %(default)s')
     parser.add_argument('--download_fol', type=Path,
                         default='videos',
