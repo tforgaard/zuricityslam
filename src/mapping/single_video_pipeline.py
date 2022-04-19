@@ -83,9 +83,9 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
     # ## 3D reconstruction
     # Run COLMAP on the features and matches.
 
-    # TODO add camera mode not equal to AUTO!
+    # TODO add camera mode as a param, single works for now, but maybe per folder would be better when we start merging
     model = reconstruction.main(
-       sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE)
+        sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE)
 
     return model, outputs, images
 
