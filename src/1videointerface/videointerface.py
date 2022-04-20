@@ -142,6 +142,9 @@ def main(args):
         pickle.dump(queries,file)
         file.close()
 
+    if args.verbose:
+        print_results()
+
     #store results to files
     download_videos(args.base_dir, args.download_fol, args.numb_vids) 
     preprocessing(args.base_dir, args.download_fol) 
@@ -288,6 +291,10 @@ if __name__ == "__main__":
                         help='search query to get video')
     parser.add_argument('--numb_vids', type=int, default=10,
                         help='Number of videos to download')
+    parser.add_argument("--verbose", 
+                        help="increase output verbosity, i.e output result of queries.",
+                        action="store_true")
+    
     args = parser.parse_args()
 
     main(args)
