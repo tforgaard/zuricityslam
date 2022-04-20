@@ -15,7 +15,8 @@ import argparse
 import os
 from pathlib import Path
 import ffmpeg
-import youtube_dl
+import yt_dlp
+import pickle
 
 ##//INCLUDE-Api-Client-to-interface-google-API----------------------------////
 from apiclient.discovery import build #pip install google-api-python-client
@@ -42,7 +43,8 @@ def main(args):
     ##//VARIABLES-APIs----------------------------------------------------////
     # Get credentials and create an API client
     global youTubeApiKey
-    youTubeApiKey="AIzaSyBh0zDXZq44mxmMq2p7eUhZnad_ElXgA6A" #Input your youTubeApiKey
+    youTubeApiKey="AIzaSyDZ7EFO3tvl5HKMj4bgQBzvBhbVhDPiCx8" #Input your youTubeApiKey
+    
     global youtubeAPI
     youtubeAPI=build('youtube','v3',developerKey=youTubeApiKey)
 
@@ -82,37 +84,72 @@ def main(args):
     inputtype = args.input_type
     input = args.query
 
-    #use query to get coordinates
-    if inputtype == "coordinates":
-        thisLocationCO = input
-    elif inputtype == "w3w":
-        #get coordinates from w3w
-        thisLocationCO = w3w_to_CO('///'+input)
-    elif inputtype == "cityname":
-        #get coordinates from google maps
-        thisLocationCO = cityname_to_CO(input)
+    #check if query is cached
+    queries = {}
+    try:
+        file = open("queries.obj",'rb')
+        queries = pickle.load(file)
+        file.close()
+    except:
+        #file empty or doesent exist, init empty dict
+        file = open("queries.obj",'wb')
+        pickle.dump({},file)
+        file.close()
+
+    if input in queries:
+        print("Query is already cached, skipping ahead...")
+        results_videoID = queries[input]["id"]
+        results_videoTitle = queries[input]["title"]
+        results_rank = queries[input]["rank"]
+        result_hits = queries[input]["hits"]
+
+        
     else:
-        print("ERROR: inputtype not recognized")
-        thisLocationCO = "47.371667, 8.542222"
+        #use query to get coordinates
+        if inputtype == "coordinates":
+            thisLocationCO = input
+        elif inputtype == "w3w":
+            #get coordinates from w3w
+            thisLocationCO = w3w_to_CO('///'+input)
+        elif inputtype == "cityname":
+            #get coordinates from google maps
+            thisLocationCO = cityname_to_CO(input)
+        else:
+            print("ERROR: inputtype not recognized")
+            thisLocationCO = "47.371667, 8.542222"
 
-    print("thisLocationCO: <" + str(thisLocationCO) + ">")
+        print("thisLocationCO: <" + str(thisLocationCO) + ">")
 
-    #run queries
-    yt_interface("City Walk")
-    yt_interface("walk")
-    yt_interface("Tour")
-    yt_interface("walking tour")
-    yt_interface("bike")
-    yt_interface("driving")
+        #run queries
+        yt_interface("City Walk")
+        yt_interface("walk")
+        yt_interface("Tour")
+        yt_interface("walking tour")
+        yt_interface("bike")
+        yt_interface("driving")
+        
+        #order results found
+        order_results()
 
-    #order results found
-    order_results()
-    #print_results()
+        #cache query
+        file = open("queries.obj",'rb')
+        queries = pickle.load(file)
+        file.close()
+
+        queries[input] = {"id":results_videoID, "title":results_videoTitle, "rank":results_rank, "hits":result_hits}
+
+        file = open("queries.obj",'wb') #overwrite old
+        pickle.dump(queries,file)
+        file.close()
+
+    if args.verbose:
+        print_results()
 
     #store results to files
-    download_videos(args.base_dir, args.download_fol) 
+    download_videos(args.base_dir, args.download_fol, args.numb_vids) 
     preprocessing(args.base_dir, args.download_fol) 
     #TODO: test implementation and add filter for only multiple hits / good ranking
+        
       
 ##//METHODES-GEOPOS-------------------------------------------------------////
 def w3w_to_CO(input):
@@ -124,18 +161,6 @@ def w3w_to_CO(input):
     print("w3w_to_CO to: " + str(out))
     return out
 
-
-# {'country': 'CH', 
-# 'square': {
-#         'southwest': {'lng': 8.541667, 'lat': 47.376887}, 
-#         'northeast': {'lng': 8.541707, 'lat': 47.376914}
-#         }, 
-# 'nearestPlace': 'Zürich (Kreis 1) / Lindenhof, Zurich', 
-# 'coordinates': {'lng': 8.541687, 'lat': 47.3769}, 
-# 'words': 'trailer.sung.believer', 
-# 'language': 'en',
-# 'map': 'https://w3w.co/trailer.sung.believer'
-# }
 
 def cityname_to_CO(cityname):
     print("not ready yet, use Zurich")
@@ -209,27 +234,23 @@ def print_results():
     pass
 
 ##//METHODES-YT-DOWNLOADE-------------------------------------------------////
-def download_videos(base_dir, folder):
-    
+def download_videos(base_dir, folder, numb_vids):
     path = os.path.join(base_dir, folder)
     Path(path).mkdir(parents=True, exist_ok=True)
-    for video in results_videoID:
-        yt = YouTube('http://youtube.com/watch?v=' + video)
-        yt.streams.get_highest_resolution().download(path)
-    
-    """
+   
     ydl_opts = {
-    'format': 'bestvideo/best',
-    'videoformat':'mp4',
-    'outtmpl': path + '/%(id)s',
-    'noplaylist' : True,        
+    'format': 'wv', # select best video
+    'paths': {'home': f'{path}'}, # home is download directory...
+    'output': {'home': '%(id)s'}  #
     }
-
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        for video in results_videoID:
-            ydl.download(['https://www.youtube.com/watch?v='+ video])
-            break
-    """
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        for count, video in enumerate(results_videoID):
+            if count < numb_vids:
+                ydl.download(['https://www.youtube.com/watch?v='+ video])
+            else: 
+                break
+            
+   
 
 ##//METHODES-PREPROESSING-------------------------------------------------////
 def frame_capture(video_path, image_folder):
@@ -268,6 +289,12 @@ if __name__ == "__main__":
                         help='inputtype of the query: coordinates, w3w, cityname')
     parser.add_argument('--query', type=str, default='trailer.sung.believer',
                         help='search query to get video')
+    parser.add_argument('--numb_vids', type=int, default=10,
+                        help='Number of videos to download')
+    parser.add_argument("--verbose", 
+                        help="increase output verbosity, i.e output result of queries.",
+                        action="store_true")
+    
     args = parser.parse_args()
 
     main(args)

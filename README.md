@@ -51,9 +51,9 @@ $ python3 src/1videointerface/videointerface.py --base_dir $path --input_type co
 - [x] video interface - Download method clean up (SH)
 - [x] video interface - Installer for Python libraries (SH)
 - [x] video interface - Interface Method (SH)
-- [ ] video interface - Cache query results (KS)
-    - [ ] add option to do dry run without downloading to just save queries
-    - [ ] add option to specify how many videos to download/find
+- [x] video interface - Cache query results (KS)
+    - [x] add option to do dry run without downloading to just save queries
+    - [x] add option to specify how many videos to download/find
 
 - [x] Pre-Processing Frame Splitting (TH)
 - [ ] Pre-Processing opt. Frame splitting based on optical flow, i.e. [iVS3D](https://github.com/iVS3D/iVS3D) (tA)
