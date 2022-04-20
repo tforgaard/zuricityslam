@@ -143,7 +143,7 @@ def main(args):
         file.close()
 
     #store results to files
-    download_videos(args.base_dir, args.download_fol) 
+    download_videos(args.base_dir, args.download_fol, args.numb_vids) 
     preprocessing(args.base_dir, args.download_fol) 
     #TODO: test implementation and add filter for only multiple hits / good ranking
         
@@ -231,19 +231,22 @@ def print_results():
     pass
 
 ##//METHODES-YT-DOWNLOADE-------------------------------------------------////
-def download_videos(base_dir, folder):
+def download_videos(base_dir, folder, numb_vids):
     path = os.path.join(base_dir, folder)
     Path(path).mkdir(parents=True, exist_ok=True)
    
     ydl_opts = {
-    'format': 'bv', # select best video
+    'format': 'wv', # select best video
     'paths': {'home': f'{path}'}, # home is download directory...
     'output': {'home': '%(id)s'}  #
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        for video in results_videoID:
-            ydl.download(['https://www.youtube.com/watch?v='+ video])
-            break
+        for count, video in enumerate(results_videoID):
+            if count < numb_vids:
+                ydl.download(['https://www.youtube.com/watch?v='+ video])
+            else: 
+                break
+            
    
 
 ##//METHODES-PREPROESSING-------------------------------------------------////
@@ -283,6 +286,8 @@ if __name__ == "__main__":
                         help='inputtype of the query: coordinates, w3w, cityname')
     parser.add_argument('--query', type=str, default='trailer.sung.believer',
                         help='search query to get video')
+    parser.add_argument('--numb_vids', type=int, default=10,
+                        help='Number of videos to download')
     args = parser.parse_args()
 
     main(args)
