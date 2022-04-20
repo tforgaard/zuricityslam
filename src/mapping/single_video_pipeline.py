@@ -83,9 +83,9 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
     # ## 3D reconstruction
     # Run COLMAP on the features and matches.
 
-    # TODO add camera mode not equal to AUTO!
+    # TODO add camera mode as a param, single works for now, but maybe per folder would be better when we start merging
     model = reconstruction.main(
-       sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE)
+        sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE)
 
     return model, outputs, images
 
@@ -99,9 +99,9 @@ if __name__ == "__main__":
                         help='Path to the dataset, default: %(default)s')
     parser.add_argument('--outputs', type=Path, default='outputs/tiny_walk_zurich',
                         help='Path to the output directory, default: %(default)s')
-    parser.add_argument('--window_size', type=int, default=5,
+    parser.add_argument('--window_size', type=int, default=2,
                         help="Size of the window of images to match, default: %(default)s")
-    parser.add_argument('--num_loc', type=int, default=5,
+    parser.add_argument('--num_loc', type=int, default=2,
                         help='Number of image pairs for loc, default: %(default)s')
     parser.add_argument('--pairing', type=str, default='sequential+retrieval',
                         help=f'Pairing method, default: %(default)s', choices=confs['pairing'])
