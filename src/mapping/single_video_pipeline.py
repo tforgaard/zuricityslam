@@ -11,7 +11,6 @@ from pycolmap import CameraMode
 from hloc import extract_features, match_features, reconstruction, visualization, pairs_from_retrieval
 from hloc.utils import viz
 from hloc import pairs_from_sequence
-import pathlib
 
 # Run SfM reconstruction from scratch on a set of images.
 
@@ -24,7 +23,7 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
 
     # define paths
     images = base_dir / dataset / 'images-fps2'
-    outputs = pathlib.Path.home() / 'zuricityslam' / 'outputs'   #base_dir / outputs
+    outputs = base_dir / outputs
 
     sfm_pairs = outputs / f'pairs-netvlad{num_loc}.txt'
     sfm_dir = outputs / 'sfm_superpoint+superglue'
