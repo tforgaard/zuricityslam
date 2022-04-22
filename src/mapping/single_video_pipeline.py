@@ -11,6 +11,7 @@ from pycolmap import CameraMode
 from hloc import extract_features, match_features, reconstruction, visualization, pairs_from_retrieval
 from hloc.utils import viz
 from hloc import pairs_from_sequence
+import pathlib
 
 # Run SfM reconstruction from scratch on a set of images.
 
@@ -23,7 +24,7 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
 
     # define paths
     images = base_dir / dataset / 'images-fps2'
-    outputs = base_dir / outputs
+    outputs = pathlib.Path.home() / 'zuricityslam' / 'outputs'   #base_dir / outputs
 
     sfm_pairs = outputs / f'pairs-netvlad{num_loc}.txt'
     sfm_dir = outputs / 'sfm_superpoint+superglue'
@@ -46,13 +47,13 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
         image_list = [str(il.name) for il in image_list]
         image_list = sorted(list(set(image_list)))
         return image_list
-
+        
     if pairing in confs['pairing']:
         if pairing == 'sequential':
             image_list = get_image_names(images)
 
             pairs_from_sequence.main(
-                sfm_pairs, image_list, features=None, window_size=window_size, quadratic=True, N=5)
+                sfm_pairs, image_list, features=None, window_size=window_size, quadratic=True, retrieval_interval=5)
         elif pairing == 'retrieval':
             # We extract global descriptors with NetVLAD and find for each image the most similar ones.
             # TODO increase number of num mathced
@@ -69,7 +70,7 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
 
             pairs_from_sequence.main(
                 sfm_pairs, image_list, features=None, window_size=window_size,
-                loop_closure=True, quadratic=True, retrieval_path=retrieval_path, N=5, num_loc=num_loc)
+                loop_closure=True, quadratic=True, retrieval_path=retrieval_path, retrieval_interval=5, num_loc=num_loc)
 
     else:
         raise ValueError(f'Unknown pairing method')
