@@ -15,6 +15,12 @@ window_size: number of sequential matches to include
 min_num_matches: not completely sure how this works, see colmap
 
 
+- [ ] Mapping - maybe go back to using only 1fps for faster reconstruction
+- [ ] Mapping - create script for rerunning a reconstruction where one tries one uses the largest submodel as a starting point, and for each submodel which is smaller, we fetch MORE matches against the largest model, and then run a continuation reconstruction
+- [ ] Mapping - Idea: find where colmap struggles during the mapping and splits the sequence into different models automatically, to extract more images (higher fps) around that area (and or increasing num_loc and window size for that specific area) to increase the success rate of the mapping
+- [ ] Mapping - Fetch lates pycolmap from github and build from source!!
+- [ ] Mapping - explore parameters for reconstruction!!!
+
 ### Walking in ZURICH   Switzerland 🇨🇭- 4K 60fps (UHD).mp4 notes
 - seem to be able to map first 200 seconds of the clip just fine as long as we use a high enough framerate, 
     - 2fps, 10 images sequential works
@@ -25,3 +31,4 @@ min_num_matches: not completely sure how this works, see colmap
     - 1080p bitrate looks a lot more reasonable, but I think we might need to go higher
 - remove first 8 seconds of clip due to watermark
 - possible loop closure in 35:26-42:40
+

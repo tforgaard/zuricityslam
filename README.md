@@ -68,6 +68,10 @@ $ python3 src/1videointerface/videointerface.py --base_dir $path --input_type co
 - [ ] Mapping - Sucessfully run mapping on a complete zurich city walk sequence (KS\\/TF)
 	- [ ] Convert video to jpgs
 	- [ ] Increase number of sequential matches and retrieval matches
+    - [ ] Mapping - min_num_matches can probably be much lower, i.e., 5?
+	- [ ] Mapping - init_min_tri_angle/min_tri_angle or something can probably be lower
+	- [ ] Add snapshot to colmap reconstruction scripts...
+
 
 - [ ] pipeline - global call method (TH,KS\\/TF)
 - [x] adding Tasks to ToDo List(KS/\\TF)
