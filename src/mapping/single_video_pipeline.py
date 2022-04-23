@@ -19,7 +19,7 @@ from hloc import pairs_from_sequence
 confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
 
-def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
+def main(base_dir, dataset, outputs, window_size, num_loc, pairing, run_reconstruction):
 
     # define paths
     images = base_dir / dataset / 'images-fps2'
@@ -85,7 +85,7 @@ def main(base_dir, dataset, outputs, window_size, num_loc, pairing):
 
     # TODO add camera mode as a param, single works for now, but maybe per folder would be better when we start merging
     model = reconstruction.main(
-        sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE)
+        sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE, run_reconstruction=run_reconstruction)
 
     return model, outputs, images
 
@@ -105,6 +105,8 @@ if __name__ == "__main__":
                         help='Number of image pairs for loc, default: %(default)s')
     parser.add_argument('--pairing', type=str, default='sequential+retrieval',
                         help=f'Pairing method, default: %(default)s', choices=confs['pairing'])
+    parser.add_argument('--run_reconstruction', action="store_true",
+                        help="If we want to run the pycolmap reconstruction or not")
     args = parser.parse_args()
     # ## Run mapping
     model, outputs, images = main(**args.__dict__)
