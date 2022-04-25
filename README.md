@@ -16,7 +16,9 @@ $ git submodule update --init --recursive
 Install hloc-fork
 ```
 $ cd hloc_fork
+$ pip3 install -r requirements.txt
 $ python3 -m pip install -e .
+$ cd ..
 ```
 
 Install required python packages, if they are not already installed:
@@ -33,17 +35,24 @@ $ cd /cluster/project/infk/courses/252-0579-00L/group07/data/pycolmap
 $ python3 -m pip install .
 
 ```
-There has been a bug in the pytube library since 17.4.22. In order to fix the bug, please follow the instructions from eroc1234: https://stackoverflow.com/questions/68945080/pytube-exceptions-regexmatcherror-get-throttling-function-name-could-not-find.
-
-
-TODO: Pytube works, but look for alternative if there is no new release
 
 ## Run this project
 
-TODO:
+#### Download videos and preprocess
 ```
-$ python3 src/1videointerface/videointerface.py --base_dir $path --input_type coordinates --query 47.371667,8.542222
+$ python3 src/1videointerface/videointerface.py --download_fol $VIDEO_PATH --input_type coordinates --query 47.371667,8.542222
 ```
+
+#### Run HLOC pipeline
+For a simple run do
+```
+$ python3 src/mapping/single_video_pipeline.py --dataset $SINGLE_VIDEO_PATH
+```
+Or to submit a batch job, do
+```
+$ bsub < scripts/single_video_pipeline.sh
+```
+See scripts / code for more info about the different parameters
 
 ## ToDo-List:
 
@@ -63,22 +72,21 @@ $ python3 src/1videointerface/videointerface.py --base_dir $path --input_type co
 - [x] Mapping - Make callable main function (KS\\/TF)
 - [x] Mapping - Merge sequential pairing and retrieval (global) pairing (KS\\/TF)
 - [ ] Mapping - Clean up mapping functions and folder names (KS\\/TF)
-- [ ] Mapping - Make optimized sequential and retrieval (global) pairing (KS\\/TF)
-	- [ ] Maybe add weighting to retrieval function to give images far away in the sequence higher score than images close in the sequence
+- [x] Mapping - Make optimized sequential and retrieval (global) pairing (KS\\/TF)
+- [ ] Maybe add weighting to retrieval function to give images far away in the sequence higher score than images close in the sequence
 - [ ] Mapping - Sucessfully run mapping on a complete zurich city walk sequence (KS\\/TF)
-	- [ ] Convert video to jpgs
+	- [x] Convert video to jpgs
 	- [ ] Increase number of sequential matches and retrieval matches
     - [ ] Mapping - min_num_matches can probably be much lower, i.e., 5?
 	- [ ] Mapping - init_min_tri_angle/min_tri_angle or something can probably be lower
-	- [ ] Add snapshot to colmap reconstruction scripts...
-
+	- [x] Add snapshot to colmap reconstruction scripts...
 
 - [ ] pipeline - global call method (TH,KS\\/TF)
 - [x] adding Tasks to ToDo List(KS/\\TF)
-- [ ] add necesseary requirements for this project (tA)
+- [x] add necesseary requirements for this project (tA)
 - [ ] make it an installable project (tA)
 - [ ] try to follow [PEP8 style guidelines](https://peps.python.org/pep-0008/), install i.e. autopep8 (tA)
-- [ ] MTP - presentation slides ready (A)
+- [x] MTP - presentation slides ready (A)
 
 ## Meetings:
 
