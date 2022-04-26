@@ -7,8 +7,10 @@
 
 BASE=/cluster/project/infk/courses/252-0579-00L/group07
 PAIRING=sequential+retrieval
-DATASET=4k/long_walk_zurich
-MODEL_DIR=${BASE}/outputs/${DATASET}_${PAIRING}_fps2/sfm_superpoint+superglue
+VIDEO=W25QdyiFnh0
+
+MODEL_DIR=${BASE}/outputs/${VIDEO}_${PAIRING}/sfm_sp+sg
+IMAGES=${BASE}/datasets/images/${VIDEO}
 OUTPUT=${MODEL_DIR}/colmap_hier
 
 # Load required modules and variables for using colmap
@@ -19,11 +21,11 @@ mkdir -p ${OUTPUT}/snap
 
 # Run hierarchical mapper
 colmap hierarchical_mapper  --database_path ${MODEL_DIR}/database.db \
-                            --image_path ${BASE}/datasets/${DATASET}/images-fps2 \
+                            --image_path ${IMAGES} \
                             --output_path ${OUTPUT} \
                             --num_workers 4 \
                             --image_overlap 100 \
-                            --leaf_max_num_images 500 \
+                            --leaf_max_num_images 1000 \
                             --Mapper.num_threads 32 \
                             --Mapper.ba_global_use_pba 1 \
                             --Mapper.init_min_tri_angle 8 \

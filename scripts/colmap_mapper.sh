@@ -7,8 +7,10 @@
 
 BASE=/cluster/project/infk/courses/252-0579-00L/group07
 PAIRING=sequential+retrieval
-DATASET=4k/long_walk_zurich
-MODEL_DIR=${BASE}/outputs/${DATASET}_${PAIRING}_fps2/sfm_superpoint+superglue
+VIDEO=W25QdyiFnh0
+
+MODEL_DIR=${BASE}/outputs/${VIDEO}_${PAIRING}/sfm_sp+sg
+IMAGES=${BASE}/datasets/images/${VIDEO}
 OUTPUT=${MODEL_DIR}/colmap
 
 # Load required modules and variables for using colmap
@@ -19,7 +21,7 @@ mkdir -p ${OUTPUT}/snap
 
 # Run mapper
 colmap mapper   --database_path ${MODEL_DIR}/database.db \
-                --image_path ${BASE}/datasets/${DATASET}/images-fps2 \
+                --image_path ${IMAGES} \
                 --output_path ${OUTPUT} \
                 --Mapper.num_threads 32 \
                 --Mapper.ba_global_use_pba 1 \
