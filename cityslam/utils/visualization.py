@@ -10,14 +10,13 @@ import argparse
 # import functools
 
 from hloc.utils.viz import (
-        plot_keypoints, add_text)
+    plot_keypoints, add_text)
 from hloc.utils.io import read_image
 
-#TODO add logging info
-#TODO add dpi setting to argparse
-#TODO specify if tmp frames should be deleted
-#TODO try to do plot video frames in parallel
-#TODO use ffmpeg for video creation?
+# TODO add logging info
+# TODO try to do plot video frames in parallel
+# TODO use ffmpeg for video creation?
+
 
 def plot_video_frames(sfm_data, save_dir='./', titles=None, cmaps='gray', dpi=100):
     """Plot a set of images sequentially.
@@ -34,7 +33,7 @@ def plot_video_frames(sfm_data, save_dir='./', titles=None, cmaps='gray', dpi=10
         else:
             cmap = plt.get_cmap[cmaps[i]]
         if i == 0:
-            ratio = image.shape[1] / image.shape[0] # W / H
+            ratio = image.shape[1] / image.shape[0]  # W / H
 
             figsize = [ratio*4.5, 4.5]
             fig = plt.figure(
@@ -49,7 +48,7 @@ def plot_video_frames(sfm_data, save_dir='./', titles=None, cmaps='gray', dpi=10
 
             for spine in ax.spines.values():  # remove frame
                 spine.set_visible(False)
-        
+
         else:
             for scatter in scatters:
                 scatter.remove()
@@ -63,7 +62,8 @@ def plot_video_frames(sfm_data, save_dir='./', titles=None, cmaps='gray', dpi=10
 
         scatters = plot_keypoints([keypoints], colors=[color], ps=4)
         t1 = add_text(0, text)
-        t2 = add_text(0, name, pos=(0.01, 0.01), fs=5, lcolor=None, va='bottom')
+        t2 = add_text(0, name, pos=(0.01, 0.01),
+                      fs=5, lcolor=None, va='bottom')
         plt.draw()
         fig.savefig(Path(save_dir) / f"{i}.png")
 
@@ -74,17 +74,17 @@ def make_video(video_frames, output, fps=2):
     frame = cv2.imread(str(video_frames / images[0]))
     height, width, layers = frame.shape
 
-    video = cv2.VideoWriter(str(output), 0, fps, (width,height))
+    video = cv2.VideoWriter(str(output), 0, fps, (width, height))
 
-    for image in images: #TODO add tqdm progress bar
+    for image in images:  # TODO add tqdm progress bar
         video.write(cv2.imread(str(video_frames / image)))
 
     cv2.destroyAllWindows()
     video.release()
 
 
-def visualize_sfm_2d_video(reconstruction, image_dir, output, color_by='visibility',
-                     image_list=[], start=None, stop=None, dpi=75):
+def visualize_sfm_2d_video(reconstruction, image_dir, output, video_name="sfm_video", color_by='visibility',
+                           image_list=[], start=None, stop=None, dpi=75, del_tmp_frames=False):
     assert image_dir.exists()
     if not isinstance(reconstruction, pycolmap.Reconstruction):
         reconstruction = pycolmap.Reconstruction(reconstruction)
@@ -96,17 +96,17 @@ def visualize_sfm_2d_video(reconstruction, image_dir, output, color_by='visibili
         if not stop:
             stop = len(image_list)
 
-        image_list = image_list[start:stop]
+        image_list = sorted(image_list)[start:stop]
 
     output = Path(output)
     output.mkdir(exist_ok=True)
-    video_output = output / 'test_video.avi'
+    video_output = output / f'{video_name}.avi'
     video_frames_output = output / 'video_frames_tmp'
     video_frames_output.mkdir(exist_ok=True)
 
     def sfm_data(image_list, reconstruction, color_by):
         n = 0
-        for i in image_list: # TODO add tqdm progress bar
+        for i in image_list:  # TODO add tqdm progress bar
             image = reconstruction.images[i]
             keypoints = np.array([p.xy for p in image.points2D])
             visible = np.array([p.has_point3D() for p in image.points2D])
@@ -116,7 +116,7 @@ def visualize_sfm_2d_video(reconstruction, image_dir, output, color_by='visibili
                 text = f'visible: {np.count_nonzero(visible)}/{len(visible)}'
             elif color_by == 'track_length':
                 tl = np.array([reconstruction.points3D[p.point3D_id].track.length()
-                            if p.has_point3D() else 1 for p in image.points2D])
+                               if p.has_point3D() else 1 for p in image.points2D])
                 max_, med_ = np.max(tl), np.median(tl[tl > 1])
                 tl = np.log(tl)
                 color = cm.jet(tl / tl.max()).tolist()
@@ -130,36 +130,40 @@ def visualize_sfm_2d_video(reconstruction, image_dir, output, color_by='visibili
                 text = f'visible: {np.count_nonzero(visible)}/{len(visible)}'
                 keypoints = keypoints[visible]
             else:
-                raise NotImplementedError(f'Coloring not implemented: {color_by}.')
+                raise NotImplementedError(
+                    f'Coloring not implemented: {color_by}.')
 
             name = image.name
             yield read_image(image_dir / name), name, keypoints, color, text
-    
-    plot_video_frames(sfm_data(image_list, reconstruction, color_by), video_frames_output, dpi=dpi)
+
+    plot_video_frames(sfm_data(image_list, reconstruction,
+                      color_by), video_frames_output, dpi=dpi)
     make_video(video_frames_output, video_output)
 
+    if del_tmp_frames:
+        for image in video_frames_output.glob('*.png'):
+            image.unlink()
+        video_frames_output.rmdir()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--base_dir', type=Path,
-                        default='/cluster/project/infk/courses/252-0579-00L/group07',
-                        help='base directory for datasets and outputs, default: %(default)s')
     parser.add_argument('--reconstruction', type=Path,
-                        default='outputs/4k/loop_walk_zurich_sequential+retrieval_fps2/sfm_superpoint+superglue/colmap/0',
+                        default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/W25QdyiFnh0/sfm_sp+sg',
                         help='patch to reconstruction from base directory, default: %(default)s')
-    parser.add_argument('--dataset', type=Path, default='datasets/4k/loop_walk_zurich',
+    parser.add_argument('--images', type=Path,
+                        default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images/W25QdyiFnh0',
                         help='Path to the dataset, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='outputs/4k/loop_walk_zurich',
+    parser.add_argument('--outputs', type=Path,
+                        default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/W25QdyiFnh0',
                         help='Path to the output directory, default: %(default)s')
     parser.add_argument('--stop', type=int, default=None,
                         help='specify stop frame, default: %(default)s')
     parser.add_argument('--start', type=int, default=None,
                         help='specify start frame, default: %(default)s')
+    parser.add_argument('--dpi', type=int, default=150,
+                        help='plot resolution, default: %(default)s')
+    parser.add_argument('--del_tmp_frames',
+                        action="store_true")
     args = parser.parse_args()
-    
-    base = Path(args.base_dir)
-    reconstruction = base / args.reconstruction
-    image_dir = base / args.dataset / 'images-fps2'
-    output = base / args.reconstruction
 
-    visualize_sfm_2d_video(reconstruction, image_dir, output, stop=args.stop, start=args.start)
+    visualize_sfm_2d_video(**args.__dict__)

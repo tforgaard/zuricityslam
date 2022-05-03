@@ -23,6 +23,11 @@ module load metis
 
 module load libx11
 
+# PREPROCESSING
+
+module load ffmpeg
+
+# VARS
 
 export FREEIMAGE_DIR=$DATA/dev/FreeImage/Dist
 
