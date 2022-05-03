@@ -5,15 +5,19 @@
 #BSUB -W 24:00             
 ####### -o .logs/hloc_pipeline_%J.log
 
+BASE=/cluster/project/infk/courses/252-0579-00L/group07
 PAIRING=sequential+retrieval
-DATASET=4k/long_walk_zurich
+VIDEO=W25QdyiFnh0
+
+IMAGES=${BASE}/datasets/images/${VIDEO}
+OUTPUT=${BASE}/outputs/${VIDEO}_${PAIRING}
 
 # Load required modules and variables for using colmap
 source ./scripts/colmap_startup.sh
 
 # Run hloc pipeline
-python3 src/mapping/single_video_pipeline.py    --dataset datasets/${DATASET} \
-                                                --outputs outputs/${DATASET}_${PAIRING}_fps2 \
+python3 src/mapping/single_video_pipeline.py    --dataset ${IMAGES} \
+                                                --outputs ${OUTPUT} \
                                                 --num_loc 7 \
                                                 --window_size 6 \
                                                 --pairing ${PAIRING}
