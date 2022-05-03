@@ -31,7 +31,7 @@ youtube_queries = ["City Walk", "walk",
                    "Tour", "walking tour", "bike", "driving"]
 
 
-def main(videos_path, images_path, input_type, query, max_results, num_vids, fps=2, format="bv", overwrite=False, verbose=False, start='00:00:00', duration='00:00:00'):
+def main(videos_path, images_path, queries_path, input_type, query, max_results, num_vids, fps=2, format="bv", overwrite=False, verbose=False, start='00:00:00', duration='00:00:00'):
 
     # Get credentials and create an API client
     youtubeAPI = build('youtube', 'v3', developerKey=youTubeApiKey)
@@ -62,7 +62,7 @@ def main(videos_path, images_path, input_type, query, max_results, num_vids, fps
 
     queries = {}
     # check if query is cached
-    queries_path = Path("queries.pkl")
+    queries_path = queries_path / "queries.pkl"
     if queries_path.exists():
         with open(queries_path, 'rb') as file:
             queries = pickle.load(file)
@@ -83,6 +83,7 @@ def main(videos_path, images_path, input_type, query, max_results, num_vids, fps
         # cache queries
         queries[query] = results
         with open(queries_path, 'wb+') as file:
+            os.chmod(queries_path, 0o777)
             pickle.dump(queries, file)
 
     if verbose:
@@ -237,6 +238,9 @@ if __name__ == "__main__":
     parser.add_argument('--images_path', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
                         help='folder for preprocessed images')
+    parser.add_argument('--queries_path', type=Path,
+                        default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/queries',
+                        help='folder for video queries')
     parser.add_argument('--input_type', type=str, default='coordinates',  # 'w3w',
                         help='inputtype of the query: %(default)s',
                         choices=['coordinates', 'w3w', 'cityname'])
