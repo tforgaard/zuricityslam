@@ -9,6 +9,7 @@ base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 videos_path = base_dir / 'datasets' / 'videos'
 images_path = base_dir / 'datasets' / 'images'
+querie_path = base_dir / 'datasets' / 'queries'
 output_path = base_dir / 'outputs'
 
 
@@ -20,7 +21,7 @@ output_path = base_dir / 'outputs'
 
 # Fetch videos and split videos into frames
 image_folders = videointerface.main(
-    videos_path, images_path, "coordinates", "47.371667, 8.542222", max_results=1, num_vids=1, format="wv", duration='00:03:00', overwrite=False)
+    videos_path, images_path, querie_path, "coordinates", "47.371667, 8.542222", max_results=1, num_vids=1, format="wv", duration='00:03:00', overwrite=False)
 
 # run sfm on videos
 for image_folder in image_folders:

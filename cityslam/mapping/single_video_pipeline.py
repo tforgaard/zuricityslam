@@ -18,7 +18,7 @@ from hloc import pairs_from_sequence
 confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
 
-def main(images, outputs, window_size, num_loc, pairing, run_reconstruction):
+def main(images, outputs, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5):
 
     sfm_dir = outputs / 'sfm_sp+sg'
 
@@ -88,7 +88,7 @@ def main(images, outputs, window_size, num_loc, pairing, run_reconstruction):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images/W25QdyiFnh0',
+    parser.add_argument('--images', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images/W25QdyiFnh0',
                         help='Path to the dataset, default: %(default)s')
     parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/outputs/W25QdyiFnh0',
                         help='Path to the output directory, default: %(default)s')
