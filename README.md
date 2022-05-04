@@ -61,6 +61,7 @@ $ python3 -m cityslam.mapping.single_video_pipeline --dataset $SINGLE_VIDEO_PATH
 ```
 Or to submit a batch job, do
 ```
+module load eth_proxy
 $ bsub < scripts/single_video_pipeline.sh
 ```
 See scripts / code for more info about the different parameters
