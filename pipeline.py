@@ -4,13 +4,15 @@ from cityslam.videointerface import videointerface
 from cityslam.mapping import single_video_pipeline
 from cityslam.utils import visualization
 
+import os
+os.umask(0o007)
 
 base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 videos_path = base_dir / 'datasets' / 'videos'
 images_path = base_dir / 'datasets' / 'images'
 querie_path = base_dir / 'datasets' / 'queries'
-output_path = base_dir / 'outputs'
+output_path = base_dir / 'outputs'  / 'models'
 
 
 # Demo of complete pipeline
