@@ -83,7 +83,6 @@ def main(videos_path, images_path, queries_path, input_type, query, max_results,
         # cache queries
         queries[query] = results
         with open(queries_path, 'wb+') as file:
-            os.chmod(queries_path, 0o777)
             pickle.dump(queries, file)
 
     if verbose:
