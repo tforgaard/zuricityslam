@@ -1,6 +1,9 @@
 export BASE=/cluster/project/infk/courses/252-0579-00L/group07
 export DATA=$BASE/data
 
+# Fix write/read permissions user:rwx, group:rwx, others:r
+umask 002
+
 # COLMAP
 
 module load gcc/6.3.0
