@@ -44,6 +44,11 @@ $ python3 -m pip install .
 
 ## Run this project
 
+#### Load eth_proxy
+```
+$ module load eth_proxy
+```
+
 #### Load packages, i.e. ffmpeg (Euler)
 ```
 $ source scripts/colmap_startup.sh
@@ -61,7 +66,6 @@ $ python3 -m cityslam.mapping.single_video_pipeline --dataset $SINGLE_VIDEO_PATH
 ```
 Or to submit a batch job, do
 ```
-module load eth_proxy
 $ bsub < scripts/single_video_pipeline.sh
 ```
 See scripts / code for more info about the different parameters
