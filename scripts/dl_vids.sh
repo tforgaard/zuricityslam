@@ -2,11 +2,10 @@
 #BSUB -J download_vids
 #BSUB -n 4
 #BSUB -W 24:00             
-####### -o .logs/dl_vid%J.log
+#####BSUB -o cluster/project/infk/courses/252-0579-00L/group07/kriss/logs/dl_vid%J.out
 
-module load eth_proxy
-
-mkdir -p ./logs/dl_vid
+source ./scripts/colmap_startup.sh
+#mkdir -p /cluster/project/infk/courses/252-0579-00L/group07/kriss/logs/dl_vid
 
 BASE=/cluster/project/infk/courses/252-0579-00L/group07/kriss
 VIDS_PATH=${BASE}/datasets/videos
@@ -24,5 +23,6 @@ python3 cityslam/videointerface/videointerface.py   --videos_path ${VIDS_PATH} \
                                                     --input_type ${QUERY_TYPE} \
                                                     --query "${QUERY}" \
                                                     --format ${QUALITY} \
-                                                    --num_vids ${N_VIDS}
+                                                    --num_vids ${N_VIDS} \
+                                                   
                                        
