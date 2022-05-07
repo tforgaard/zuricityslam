@@ -17,7 +17,7 @@ QUERY="47.371667, 8.542222"
 QUALITY="bv"
 N_VIDS="25"
 
-python3 cityslam/videointerface/videointerface.py   --videos_path ${VIDS_PATH} \
+bsub -n 15 python3 cityslam/videointerface/videointerface.py   --videos_path ${VIDS_PATH} \
                                                     --images_path ${IMGS_PATH} \
                                                     --queries_path ${QUERY_PATH} \
                                                     --input_type ${QUERY_TYPE} \

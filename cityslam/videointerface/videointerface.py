@@ -12,7 +12,6 @@ import argparse
 import os
 from pathlib import Path
 import pickle
-
 import numpy as np
 import yt_dlp
 import ffmpeg
@@ -22,6 +21,13 @@ from oauth2client.tools import argparser
 # google-API
 from apiclient.discovery import build
 from apiclient.errors import HttpError
+
+#multiprocessing frame splitting
+import cv2
+import multiprocessing as mp
+from concurrent.futures import ProcessPoolExecutor
+from functools import partial
+import time
 
 youTubeApiKey = "AIzaSyDZ7EFO3tvl5HKMj4bgQBzvBhbVhDPiCx8"  # Input your youTubeApiKey
 w3wApiKey = "AWXNVR24"  # Input your w3wApiKey
@@ -188,25 +194,59 @@ def download_videos(video_path, results, num_vids, format):
 
 
 # //METHODES-PREPROESSING-------------------------------------------------////
-def frame_capture(video_path, images_path, prefix="", fps=2, start='00:00:00', duration='00:00:00'):
-    if prefix:
-        prefix = prefix + "_"
-    
-    input_opts = {'ss': start}
-    if duration != '00:00:00':
-        input_opts = {'t': duration}
-    
-    try:
-        ffmpeg.input(video_path, **input_opts) \
-            .filter('fps', fps=f'{fps}') \
-            .output(str(images_path / f'{prefix}img_fps{fps}_%05d.jpg'), start_number=0) \
-            .overwrite_output() \
-            .run(quiet=True)
-    except ffmpeg.Error as e:
-        print('stdout:', e.stdout.decode('utf8'))
-        print('stderr:', e.stderr.decode('utf8'))
-        raise e
+def process_video_multiprocessing(group_number, frame_jump_unit, interval, file_name, images_path, pad):
+    # Read video file
+    cap = cv2.VideoCapture(file_name)
+    frameNr = frame_jump_unit * group_number
+    cap.set(cv2.CAP_PROP_POS_FRAMES, frameNr)
+    frameNr_copy = frameNr
+    count = 0
+    while count < frame_jump_unit:
+        ret, frame = cap.read()
 
+        if not ret:
+            break
+
+        if (count % interval == 0):
+            image_path = os.path.join(images_path, str(frameNr_copy).zfill(pad) + '.jpg')
+            cv2.imwrite(image_path, frame)
+            frameNr_copy += 1
+        count += 1
+
+    cap.release()
+
+def frame_capture(video_path, images_path, prefix="", fps=2, start='00:00:00', duration='00:00:00'):
+    file_name = str(video_path)
+    print(file_name)
+    cap = cv2.VideoCapture(file_name)
+    if cap is None or not cap.isOpened():
+       print('Warning: unable to open video source: ', file_name)
+
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print(frame_count)
+    #num_processes = mp.cpu_count()
+    num_processes = 10
+    frame_jump_unit =  int(frame_count / num_processes)
+    interval = int(cap.get(cv2.CAP_PROP_FPS) / 2)
+
+    start_time = time.time()
+    with ProcessPoolExecutor(max_workers=num_processes) as executor:
+        executor.map(partial(process_video_multiprocessing,
+                             frame_jump_unit = frame_jump_unit,
+                             interval = interval,
+                             file_name = file_name,
+                             images_path = images_path,
+                             pad = len(str(frame_count))), range(num_processes))
+    """
+    with Pool() as pool:
+        pool.map(partial(process_video_multiprocessing, 
+                        frame_jump_unit = frame_jump_unit, interval = interval, file_name = file_name), range(num_processes))
+    """
+    end_time = time.time()
+
+    total_processing_time = end_time - start_time
+    print("Time taken: {}".format(total_processing_time))
+    
 
 def preprocessing(videos_path, output_path, num_vids, overwrite, fps, start, duration):
 
