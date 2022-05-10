@@ -1,11 +1,12 @@
 from pathlib import Path
 import os
+from datetime import datetime
 
 import cityslam
 from cityslam.videointerface import videointerface, downloader
 from cityslam.preprocessing import preprocessing
-from cityslam.mapping import single_video_pipeline
-from cityslam.utils import visualization
+#from cityslam.mapping import single_video_pipeline
+#from cityslam.utils import visualization
 
 os.umask(0o002)
 
@@ -25,11 +26,13 @@ num_vids = 1
 # set overwrite to True if you want to ignore cached files
 
 # Fetch videos for query
-video_ids = videointerface.main(queries_path, "coordinates", "47.371667, 8.542222",
-                                max_results=1, overwrite=False, verbose=True)
+#queries_path = Path(queries_path.stem + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json")
+queries_path = Path(queries_path.stem + "_20220510_164751.json")
+video_ids = videointerface.main(queries_path, "coordinates", "47.371667, 8.542222", max_results=1, overwrite=False, verbose=True)
 
 # Download videos
-downloader.main(videos_path, video_ids[:num_vids], format="wv")
+downloader.main(videos_path, queries_path, format="wv")
+exit(0)
 
 # Split videos into frames
 image_folders = preprocessing.main(

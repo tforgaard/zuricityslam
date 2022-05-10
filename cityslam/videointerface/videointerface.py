@@ -31,7 +31,6 @@ youtube_queries = ["City Walk", "walk",
 
 # JSON capabilities
 import json
-from datetime import datetime
 
 def main(queries_path, input_type, query, max_results, overwrite=False, verbose=True):
 
@@ -40,6 +39,7 @@ def main(queries_path, input_type, query, max_results, overwrite=False, verbose=
 
     # Get credentials and create an API client
     youtubeAPI = build('youtube', 'v3', developerKey=youTubeApiKey)
+    #TODO bug that YT API USE is done when there is nothing to do
 
     results = {
         'video_id': np.array([], dtype=object),
@@ -66,10 +66,10 @@ def main(queries_path, input_type, query, max_results, overwrite=False, verbose=
 
     queries = {}
     # check if query is cached
-    queries_path = queries_path / "queries.pkl"
+    #queries_path = queries_path / "queries.pkl"
     if queries_path.exists() and not overwrite:
-        with open(queries_path, 'rb') as file:
-            queries = pickle.load(file)
+        with open(queries_path, 'r') as openfile:
+            json_object = json.load(openfile)
 
     if query in queries and not overwrite:
         logger.info("Query is already cached, skipping ahead...")
@@ -178,15 +178,18 @@ class NumpyEncoder(json.JSONEncoder):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
 
-def store_query(queries_path, results):
-    storagefilename=queries_path.stem + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json"
-    resultsforjson = [{'video_id': video_id, 'title': title, 'rank': rank, 'hits': hits} for video_id, title, rank, hits in zip(results['video_id'], results['title'], results['rank'], results['hits'])]
+def store_query(queries_path, results, humanformat=False):
+    storagefilename=queries_path
+    if humanformat:
+        resultsforjson = [{'video_id': video_id, 'title': title, 'rank': rank, 'hits': hits} for video_id, title, rank, hits in zip(results['video_id'], results['title'], results['rank'], results['hits'])]
     # for entry in range(results['rank'].size):
     #     for key in results:
     #         json_dump(key + results[key][entry], outfile)
     with open(storagefilename, "w") as outfile:        
-        #json.dump(results, outfile, cls=NumpyEncoder)
-        json.dump(resultsforjson, outfile)
+        if humanformat:
+            json.dump(resultsforjson, outfile)
+        else:
+            json.dump(results, outfile, cls=NumpyEncoder)
     pass
 
 # //METHODES-ARGUMENT-HANDLING--------------------------------------------////

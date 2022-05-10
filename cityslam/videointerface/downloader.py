@@ -2,10 +2,20 @@ from pathlib import Path
 import argparse
 
 import yt_dlp
+import json
 
 
-def main(output, video_ids, format, overwrite=False):
+def main(output, path_video_ids, format, overwrite=False):
     output.mkdir(parents=True, exist_ok=True)
+
+    
+    with open(path_video_ids, 'r') as openfile:
+        json_object = json.load(openfile)
+
+    video_ids = json_object['video_id']
+    for video_id in video_ids:
+        print(video_id+"\n")
+    return
 
     ydl_opts = {
         'format': format,
