@@ -11,6 +11,7 @@
 import argparse
 from pathlib import Path
 import pickle
+from matplotlib.font_manager import json_dump
 
 import numpy as np
 import what3words as w3w
@@ -28,6 +29,9 @@ w3wApiKey = "AWXNVR24"  # Input your w3wApiKey
 youtube_queries = ["City Walk", "walk",
                    "Tour", "walking tour", "bike", "driving"]
 
+# JSON capabilities
+import json
+from datetime import datetime
 
 def main(queries_path, input_type, query, max_results, overwrite=False, verbose=True):
 
@@ -80,10 +84,13 @@ def main(queries_path, input_type, query, max_results, overwrite=False, verbose=
         # order results found
         order_results(results)
 
+        # store query
+        store_query(queries_path, results);
+
         # cache queries
-        queries[query] = results
-        with open(queries_path, 'wb+') as file:
-            pickle.dump(queries, file)
+        # queries[query] = results
+        # with open(queries_path, 'wb+') as file:
+        #     pickle.dump(queries, file)
 
     if verbose:
         print_results(results)
@@ -164,6 +171,25 @@ def print_results(results):
         print(str(count).zfill(3) + ": " + str(results['video_id'][count]) + " (" + str(results['rank'][count]).zfill(
             3) + " in " + str(results['hits'][count]).zfill(2) + ")" + " : " + results['title'][count])
 
+# //METHODES-DATASTORAGE--------------------------------------------------////
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
+def store_query(queries_path, results):
+    storagefilename=queries_path.stem + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json"
+    resultsforjson = [{'video_id': video_id, 'title': title, 'rank': rank, 'hits': hits} for video_id, title, rank, hits in zip(results['video_id'], results['title'], results['rank'], results['hits'])]
+    # for entry in range(results['rank'].size):
+    #     for key in results:
+    #         json_dump(key + results[key][entry], outfile)
+    with open(storagefilename, "w") as outfile:        
+        #json.dump(results, outfile, cls=NumpyEncoder)
+        json.dump(resultsforjson, outfile)
+    pass
+
+# //METHODES-ARGUMENT-HANDLING--------------------------------------------////
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
