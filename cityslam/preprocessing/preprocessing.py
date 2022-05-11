@@ -27,16 +27,19 @@ def frame_capture(video_path, images_path, prefix="", fps=2, start='00:00:00', d
         raise e
 
 
-def main(videos, output, num_vids, overwrite, fps=2, start='00:00:00', duration='00:00:00'):
+def main(videos, output, video_ids=None, overwrite=False, fps=2, start='00:00:00', duration='00:00:00'):
 
     image_dirs = []
-    for count, file in enumerate(os.listdir(videos)):
+    for file in os.listdir(videos):
         if file.endswith((".mp4", "webm")):
-            if count >= num_vids:
-                break
+            video_id = file[file.find("[")+1:file.find("]")]
+            
+            # skip videoes not in video_ids
+            if video_ids is not None and video_id not in video_ids:
+                continue
+
             logger.info(
                 f"extracting frames from video: {file} using fps: {fps}")
-            video_id = file[file.find("[")+1:file.find("]")]
             video_path = videos / file  # video_path
             images_path = output / f"{video_id}"
             image_dirs.append(images_path)
@@ -58,8 +61,8 @@ if __name__ == "__main__":
     parser.add_argument('--output', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
                         help='folder for preprocessed images')
-    parser.add_argument('--num_vids', type=int, default=1,
-                        help='Number of videos to preprocess')
+    parser.add_argument('--video_ids', type=int, default=None,
+                        help='Video ids to preprocess, defaults to do everyone')
     parser.add_argument("--overwrite",
                         help="Overwrite cached queries",
                         action="store_true")
