@@ -4,7 +4,7 @@ ToDo: add this
 
 ## Prerequisites
 Project is created with
-* Python: 3.7.12
+* Python: 3.7
 
 ## Set up
 Clone this repository:
@@ -44,27 +44,48 @@ $ python3 -m pip install .
 
 ## Run this project
 
+### Load packages, i.e. ffmpeg (Euler)
+```
+$ source scripts/colmap_startup.sh
+```
+
+### Run simple demo of cityslam pipeline
+```
+$ python3 pipeline.py
+```
+
+### To run the intermediate steps of the pipeline
+
+#### Find videos for a given query
+```
+$ python3 -m cityslam.videointerface.videointerface --input_type coordinates --query 47.371667,8.542222
+```
+
+#### Download videos
+```
+$ python3 -m cityslam.videointerface.downloader --output $VIDEO_PATH --video_ids W25QdyiFnh0 ...
+```
+
+#### Preprocess
+```
+$ python3 -m cityslam.preprocessing.preprocessing --videos $VIDEO_PATH --output $IMAGES_PATH
+```
+
+#### Mapping
+
+```
+$ python3 -m cityslam.mapping.single_video_pipeline --dataset $SINGLE_VIDEO_PATH
+```
+
+## Scripts
+The scripts are useful more intensive jobs
+
 #### Load eth_proxy
 ```
 $ module load eth_proxy
 ```
 
-#### Load packages, i.e. ffmpeg (Euler)
-```
-$ source scripts/colmap_startup.sh
-```
-
-#### Download videos and preprocess
-```
-$ python3 -m cityslam.videointerface.videointerface --download_fol $VIDEO_PATH --input_type coordinates --query 47.371667,8.542222
-```
-
-#### Run HLOC pipeline
-For a simple run do
-```
-$ python3 -m cityslam.mapping.single_video_pipeline --dataset $SINGLE_VIDEO_PATH
-```
-Or to submit a batch job, do
+To submit a batch job, do
 ```
 $ bsub < scripts/single_video_pipeline.sh
 ```
