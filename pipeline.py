@@ -32,6 +32,7 @@ video_ids = videointerface.main(queries_path, "coordinates", "47.371667, 8.54222
 
 # if you know what videos you want to download just overwrite video ids, i.e.
 # video_ids = ['gTHMvU3XHBk'], 'TZIHy1cZJ-U']
+# these to specific video ids, are merge testing videos
 
 # Download videos
 downloader.main(videos_path, video_ids, format="bv", overwrite=overwrite)
