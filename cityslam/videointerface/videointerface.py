@@ -29,7 +29,7 @@ youtube_queries = ["City Walk", "walk",
                    "Tour", "walking tour", "bike", "driving"]
 
 
-def main(queries_path, input_type, query, max_results, overwrite=False, verbose=True):
+def main(queries_path, input_type, query, num_vids, max_results=100, overwrite=False, verbose=True):
 
     if not verbose:
         logger.setLevel('ERROR')
@@ -88,8 +88,7 @@ def main(queries_path, input_type, query, max_results, overwrite=False, verbose=
     if verbose:
         print_results(results)
 
-    # TODO fix max results !!!! This is temporary hack
-    return list(results['video_id'][:max_results])
+    return list(results['video_id'][:num_vids])
 
 
 # //METHODES-GEOPOS-------------------------------------------------------////
@@ -175,7 +174,9 @@ if __name__ == "__main__":
                         choices=['coordinates', 'w3w', 'cityname'])
     parser.add_argument('--query', type=str, default='47.371667, 8.542222',  # 'trailer.sung.believer',
                         help='search query to get video')
-    parser.add_argument('--max_results', type=int, default=25,
+    parser.add_argument('--num_vids', type=int, default=5,
+                        help='Max number of results to fetch')
+    parser.add_argument('--max_results', type=int, default=100,
                         help='Max number of results to fetch')
     parser.add_argument("--verbose",
                         help="increase output verbosity, i.e output result of queries.",

@@ -14,7 +14,7 @@ def main(output, video_ids, format, overwrite=False):
     }
 
     if overwrite:
-        ydl_opts['force-overwrites'] = True
+        ydl_opts['overwrites'] = True
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         for video in video_ids:
