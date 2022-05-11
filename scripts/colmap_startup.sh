@@ -30,6 +30,10 @@ module load libx11
 
 module load ffmpeg
 
+# BATCH JOB INTERNET
+
+module load eth_proxy
+
 # VARS
 
 export FREEIMAGE_DIR=$DATA/dev/FreeImage/Dist
