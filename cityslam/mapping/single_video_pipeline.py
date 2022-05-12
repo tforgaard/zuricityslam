@@ -18,38 +18,52 @@ from hloc import pairs_from_sequence
 confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
 
-def main(images, outputs, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5):
+def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5):
 
-    sfm_dir = outputs / 'sfm_sp+sg'
+    output_model = outputs / video_id
+    sfm_dir = output_model / 'sfm_sp+sg'
 
     retrieval_conf = extract_features.confs['netvlad']
     feature_conf = extract_features.confs['superpoint_aachen']
     matcher_conf = match_features.confs['superglue']
 
-    outputs.mkdir(exist_ok=True, parents=True, mode=0o777)
+    output_model.mkdir(exist_ok=True, parents=True, mode=0o777)
 
     # ## Find image pairs either via sequential pairing, image retrieval or eventually both
 
-    def get_image_names(image_path):
-        image_list = list(Path(image_path).glob('*.jpg'))
-        image_list = [str(il.name) for il in image_list]
-        image_list = sorted(list(set(image_list)))
-        return image_list
+    def get_images(image_path, subfolder=None):
+        globs = ['*.jpg', '*.png', '*.jpeg', '*.JPG', '*.PNG']
+        image_list = []
         
-    if pairing in confs['pairing']:
-        if pairing == 'sequential':
-            image_list = get_image_names(images)
+        if subfolder is not None:
+            image_path = image_path / subfolder
+        
+        for g in globs:
+            image_list += list(Path(image_path).glob(g))
 
-            sfm_pairs = outputs / f'pairs-sequential{window_size}.txt'
+        image_list = ["/".join(img.parts[-2:]) for img in image_list]
+            
+        image_list = sorted(list(image_list))
+        return image_list
+
+    if pairing in confs['pairing']:
+        print("getting images...")
+        # Image list is the the relative path to the image from the top most image root folder
+        image_list = get_images(images_path, subfolder=video_id)
+        print(f"num images : {len(image_list)}")
+        
+        if pairing == 'sequential':
+            sfm_pairs = output_model / f'pairs-sequential{window_size}.txt'
 
             pairs_from_sequence.main(
                 sfm_pairs, image_list, features=None, window_size=window_size, quadratic=True)
+
         elif pairing == 'retrieval':
             # We extract global descriptors with NetVLAD and find for each image the most similar ones.
             retrieval_path = extract_features.main(
-                retrieval_conf, images, outputs)
+                retrieval_conf, images_path, outputs, image_list=image_list)
 
-            sfm_pairs = outputs / f'pairs-retrieval-netvlad{num_loc}.txt'
+            sfm_pairs = output_model / f'pairs-retrieval-netvlad{num_loc}.txt'
 
             pairs_from_retrieval.main(
                 retrieval_path, sfm_pairs, num_matched=num_loc)
@@ -57,41 +71,45 @@ def main(images, outputs, window_size, num_loc, pairing, run_reconstruction, ret
         elif pairing == 'sequential+retrieval':
             # We extract global descriptors with NetVLAD and find for each image the most similar ones.
             retrieval_path = extract_features.main(
-                retrieval_conf, images, outputs)
+                retrieval_conf, images_path, outputs, image_list=image_list)
 
-            image_list = get_image_names(images)
-
-            sfm_pairs = outputs / f'pairs-sequential{window_size}-retrieval-netvlad{num_loc}.txt'
+            sfm_pairs = output_model / f'pairs-sequential{window_size}-retrieval-netvlad{num_loc}.txt'
 
             pairs_from_sequence.main(
                 sfm_pairs, image_list, features=None, window_size=window_size,
-                loop_closure=True, quadratic=True, retrieval_path=retrieval_path, retrieval_interval=5, num_loc=num_loc)
+                loop_closure=True, quadratic=True, retrieval_path=retrieval_path, retrieval_interval=retrieval_interval, num_loc=num_loc)
 
     else:
         raise ValueError(f'Unknown pairing method')
 
     # ## Extract and match local features
 
-    feature_path = extract_features.main(feature_conf, images, outputs)
+    feature_path = extract_features.main(feature_conf, images_path, outputs, image_list=image_list)
+
+    # output file for matches
+    matches = Path(output_model, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
+                
     match_path = match_features.main(
-        matcher_conf, sfm_pairs, feature_conf['output'], outputs)
+        matcher_conf, sfm_pairs, features=feature_path, matches=matches)
 
     # ## 3D reconstruction
     # Run COLMAP on the features and matches.
 
     # TODO add camera mode as a param, single works for now, but maybe per folder would be better when we start merging
     model = reconstruction.main(
-        sfm_dir, images, sfm_pairs, feature_path, match_path, camera_mode=CameraMode.SINGLE, run=run_reconstruction)
+        sfm_dir, images_path, sfm_pairs, feature_path, match_path, image_list=image_list, camera_mode=CameraMode.SINGLE, run=run_reconstruction)
 
     return model
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--images', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images/W25QdyiFnh0',
+    parser.add_argument('--images_path', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
                         help='Path to the dataset, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/outputs/W25QdyiFnh0',
+    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/outputs',
                         help='Path to the output directory, default: %(default)s')
+    parser.add_argument('--video_id', type=str, default='W25QdyiFnh0',
+                        help='video id for subfolder, %(default)s')
     parser.add_argument('--window_size', type=int, default=6,
                         help="Size of the window of images to match sequentially, default: %(default)s")
     parser.add_argument('--num_loc', type=int, default=7,
@@ -105,7 +123,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # Run mapping
-    model, outputs, images = main(**args.__dict__)
+    model = main(**args.__dict__)
+
+    images = args.images_path / args.video_id
+    outputs = args.outputs
 
     if model is not None:
         # We visualize some of the registered images, and color their keypoint by visibility, track length, or triangulated depth.
