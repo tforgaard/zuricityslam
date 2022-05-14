@@ -61,7 +61,7 @@ if __name__ == "__main__":
     parser.add_argument('--output', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
                         help='folder for preprocessed images')
-    parser.add_argument('--video_ids', type=int, default=None,
+    parser.add_argument('--video_ids', nargs="+", default=None,
                         help='Video ids to preprocess, defaults to do everyone')
     parser.add_argument("--overwrite",
                         help="Overwrite cached queries",
