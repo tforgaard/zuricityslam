@@ -77,7 +77,45 @@ def predictions_to_scenes(predictions: np.ndarray, threshold: float = 0.5):
 
         return np.array(scenes, dtype=np.int32)
 
-def main(video_file_path, model_path, output):
+def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, cut_file):
+    probe = ffmpeg.probe(video_file_path)
+    video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
+    fps = int(video_info['r_frame_rate'].split('/')[0])
+
+    max_frames = fps*max_scene_length
+    min_frames = fps*min_scene_length
+
+    """
+    we drop too short scenes,
+    for the too long scenes we want to divde them up: 
+    [[scene[0], scene[0] + max_frames - 1],
+        [scene[0] + max_frames, scene[0] + 2*max_frames - 1],
+    ...
+        [scene[0] + (whole_maxes - 1)*max_frames, scene[0] + (whole_maxes)*max_frames - 1],
+        [scene[0] + (whole_maxes)*max_frames, scene[1]]
+    """    
+
+    new_scenes = []
+    with open(cut_file, 'r') as file:
+        scenes = np.loadtxt(file, dtype=int)
+        for i, scene in enumerate(scenes):
+            scene_length = scene[1] - scene[0]
+            whole_maxes = int(scene_length // max_frames)
+            rest_maxes = int(scene_length % max_frames)
+            
+            if scene_length > min_frames:
+                
+                for j in range(whole_maxes):
+                    new_scenes.append([scene[0] + j*max_frames, scene[0] + (j+1)*max_frames - 1])
+                
+                if rest_maxes >= min_frames:
+                    new_scenes.append([scene[0] + (whole_maxes)*max_frames, scene[1]])
+        
+    with open(cut_file + "_cropped", 'w') as file:
+            np.savetxt(file, new_scenes, fmt="%d")
+
+
+def main(video_file_path, model_path, output, max_scene_length, min_scene_length):
     assert video_file_path.is_file()
 
     output_file = output / video_file_path.stem
@@ -104,6 +142,9 @@ def main(video_file_path, model_path, output):
     else:
         print(f"Already found cuts for video {video_file_path.stem}")
 
+    add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, output_file)
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -116,6 +157,12 @@ if __name__ == "__main__":
     parser.add_argument('--output', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07/kriss/datasets/cuts',
                         help='where to store list of cuts for specific video')
+    parser.add_argument('--max_scene_length', type=int,
+                        default=5*60,
+                        help='number of seconds of max scene length')
+    parser.add_argument('--min_scene_length', type=int,
+                        default=30,
+                        help='number of seconds of min scene length')
 
     args = parser.parse_args()
     main(**args.__dict__)
