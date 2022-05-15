@@ -15,7 +15,7 @@ base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 videos_path = base_dir / 'datasets' / 'videos'
 images_path = base_dir / 'datasets' / 'images'
 queries_path = base_dir / 'datasets' / 'queries'
-output_path = base_dir / 'outputs' / 'models-merge-testing'
+output_path = base_dir / 'outputs' / 'models-merge-testing3'
 
 overwrite = False
 video_ids = ['gTHMvU3XHBk', 'TZIHy1cZJ-U']
@@ -32,7 +32,7 @@ for video_id in video_ids:
 
     # sfm_path = output_path / image_folder.name
     reconstruction = single_video_pipeline.main(
-        images_path, output_path, seq_id=video_id, window_size=6, num_loc=6, pairing='sequential+retrieval', run_reconstruction=True)
+        images_path, output_path, video_id=video_id, window_size=6, num_loc=6, pairing='sequential+retrieval', run_reconstruction=False)
 
     # Visualize feature points
     if reconstruction is not None:

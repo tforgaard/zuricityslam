@@ -10,6 +10,7 @@ from pycolmap import CameraMode
 from hloc import extract_features, match_features, reconstruction, visualization, pairs_from_retrieval
 from hloc.utils import viz
 from hloc import pairs_from_sequence
+from . import update_features
 
 # Run SfM reconstruction from scratch on a set of images.
 
@@ -61,7 +62,7 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
         elif pairing == 'retrieval':
             # We extract global descriptors with NetVLAD and find for each image the most similar ones.
             retrieval_path = extract_features.main(
-                retrieval_conf, images_path, outputs, image_list=image_list)
+                retrieval_conf, images_path, output_model, image_list=image_list)
 
             sfm_pairs = output_model / f'pairs-retrieval-netvlad{num_loc}.txt'
 
@@ -71,7 +72,7 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
         elif pairing == 'sequential+retrieval':
             # We extract global descriptors with NetVLAD and find for each image the most similar ones.
             retrieval_path = extract_features.main(
-                retrieval_conf, images_path, outputs, image_list=image_list)
+                retrieval_conf, images_path, output_model, image_list=image_list)
 
             sfm_pairs = output_model / f'pairs-sequential{window_size}-retrieval-netvlad{num_loc}.txt'
 
@@ -84,13 +85,18 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
 
     # ## Extract and match local features
 
-    feature_path = extract_features.main(feature_conf, images_path, outputs, image_list=image_list)
+    feature_path = extract_features.main(feature_conf, images_path, output_model, image_list=image_list)
+
+    # Copy local and global features and from our file to the 'joint' feature files
+    # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
+    overwrite=True
+    update_features.main(output_model, outputs, overwrite=overwrite)
 
     # output file for matches
     matches = Path(output_model, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
-                
+
     match_path = match_features.main(
-        matcher_conf, sfm_pairs, features=feature_path, matches=matches)
+        matcher_conf, sfm_pairs, features=Path(feature_path.parent.parent / feature_path.name), matches=matches)
 
     # ## 3D reconstruction
     # Run COLMAP on the features and matches.
