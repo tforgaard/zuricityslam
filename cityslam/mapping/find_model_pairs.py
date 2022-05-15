@@ -29,6 +29,13 @@ def get_images_from_recon(sfm_model):
     return sorted(img_list)
 
 
+def model_path_2_name(model_path:str):
+    return str(model_path).replace("/","-")
+
+
+def model_name_2_path(model_path):
+    return Path(str(model_path).replace("-","/"))
+
 def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=False):
 
     outputs = Path(outputs)
@@ -52,13 +59,13 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
     model_folders = [model_folder.relative_to(models_dir) for model_folder in model_folders if model_folder not in remove_folders]
 
     K = len(model_folders)
-    logger.info(f"found {len(K)} models")
+    logger.info(f"found {K} models")
     
     scores = np.zeros((K, K))
 
     models_dict = {m : model_m for m, model_m in enumerate(model_folders)}
 
-    global_descriptors = list(models_dir.glob("global-feats*.h5"))[0]
+    global_descriptors = next(models_dir.glob("global-feats*.h5"))
 
     for n_ref, model_ref in enumerate(model_folders):
 
@@ -73,20 +80,20 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
                 # db_names_n = list_h5_names(descriptor_n)
 
                 query = img_names_target[::retrieval_interval]
-
+                
                 # TODO: make this a file in a folder structure instead...
-                sfm_pairs = outputs / f'pairs-merge_{models_dict[n_target]}_{models_dict[n_ref]}_{num_loc}.txt'
+                sfm_pairs = outputs / f'pairs-merge_{model_path_2_name(models_dict[n_target])}_{model_path_2_name(models_dict[n_ref])}_{num_loc}.txt'
 
 
                 # Check to see if models are sequential partitions
                 video_id_target =  model_target.parts[0]
                 video_id_ref =  model_ref.parts[0]
-                pairs = check_for_common_images(img_names_target, img_names_ref, video_id_target, video_id_ref)
+                pairs = check_for_common_images(query, img_names_ref, video_id_target, video_id_ref)
 
                 # Mask out already matched pairs
                 # already_matched_ref_imgs = [ref_img for (_, ref_img) in pairs]
                 # db_list = [img_name_ref for img_name_ref in img_names_ref if img_name_ref not in already_matched_ref_imgs]
-                match_mask = np.zeros((len(img_names_target, img_names_ref)),dtype=bool)
+                match_mask = np.zeros((len(query), len(img_names_ref)),dtype=bool)
                 for (p1, p2) in pairs:
                     match_mask[img_names_target.index(p1), img_names_ref.index(p2)] = True
 
@@ -120,12 +127,12 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
         scores_file.parent.mkdir(parents=True, exist_ok=True)
 
     for i in range(scores.shape[0]):
-        if overwrite or scores_dict.get(models_dict[i]) is None: 
-            scores_dict[models_dict[i]] = {}
+        if overwrite or scores_dict.get(model_path_2_name(models_dict[i])) is None: 
+            scores_dict[model_path_2_name(models_dict[i])] = {}
 
         for j in range(scores.shape[1]):
-            if overwrite or scores_dict[models_dict[i]].get([models_dict[j]]) is None:
-                scores_dict[models_dict[i]][models_dict[j]] = scores[i,j]
+            if overwrite or scores_dict[model_path_2_name(models_dict[i])].get(model_path_2_name(models_dict[j])) is None:
+                scores_dict[model_path_2_name(models_dict[i])][model_path_2_name(models_dict[j])] = scores[i,j]
     
     # Cache score file
     with open(scores_file, "w+") as f:
@@ -224,8 +231,9 @@ if __name__ == "__main__":
                         help='Number of image pairs for retrieval, default: %(default)s')
     parser.add_argument('--retrieval_interval', type=int, default=5,
                         help='How often to trigger retrieval: %(default)s')
-    parser.add_argument('--min_score', type=float, default=0.5,
+    parser.add_argument('--min_score', type=float, default=0.15,
                         help='Minimum score for retrieval: %(default)s')
+    parser.add_argument('--overwrite', action="store_true")
     args = parser.parse_args()
 
     main(**args.__dict__)
