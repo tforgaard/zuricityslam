@@ -1,3 +1,8 @@
 /src/0data/*
 *.out
 **/__pycache__
+logs/*
+imgs/*
+.vscode/*
+*.egg-info/*
+base
