@@ -1,11 +1,10 @@
 #!/bin/bash
-#BSUB -J generate frames
+#BSUB -J generate_frames
 #BSUB -n 16
-#BSUB -R rusage[mem=4096] 
-#####,ngpus_excl_p=1]
+#BSUB -R rusage[mem=4096]
 #BSUB -W 24:00     
-#BSUB -outdir "./logs"
-#BSUB -o gen_frames%J.out
+#BSUB -outdir ./logs
+#BSUB -o ./logs/gen_frames%J.out
 
 source ./scripts/colmap_startup.sh
 
@@ -23,5 +22,3 @@ python3 -m cityslam.preprocessing.preprocessing --videos ${VIDS_PATH} \
                                                 --fps ${FPS}
                                                 # --video_ids ${VIDEO_IDS} \
                                                 # --overwrite
-                                                   
-                                       

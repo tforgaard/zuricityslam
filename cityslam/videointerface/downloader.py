@@ -10,7 +10,8 @@ def main(output, video_ids, format, overwrite=False):
     ydl_opts = {
         'format': format,
         'paths': {'home': f'{output}'},  # home is download directory...
-        'output': {'home': '%(id)s'}  # not sure about this
+        'output': {'home': '%(id)s'},  # not sure about this
+        'retries': 10
     }
 
     if overwrite:

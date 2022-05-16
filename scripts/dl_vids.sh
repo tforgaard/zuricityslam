@@ -2,9 +2,9 @@
 #BSUB -J download_vids
 #BSUB -n 4
 #BSUB -R rusage[mem=4096]
-#BSUB -W 24:00     
-#BSUB -outdir "./logs"
-#BSUB -o dl_vid%J.out
+#BSUB -W 4:00     
+#BSUB -outdir ./logs
+#BSUB -o ./logs/dl_vid%J.out
 
 source ./scripts/colmap_startup.sh
 
@@ -23,5 +23,3 @@ python3 -m cityslam.videointerface.downloader   ${VIDEO_IDS} \
                                                 --output ${VIDS_PATH} \
                                                 --format ${QUALITY} \
                                                 # --overwrite
-                                                   
-                                       
