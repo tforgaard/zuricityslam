@@ -31,7 +31,12 @@ def main(model_dir, output, overwrite=False):
 
     feature_files = Path(model_dir).glob("*.h5")
     for feature_file in feature_files:
-        copy_part(Path(output) / feature_file.name, feature_file, feature_file.parent.name, overwrite)
+        
+        model_name = feature_file.parent.name
+        if "_part" in model_name:
+            model_name = model_name.split("_part")[0]
+        
+        copy_part(Path(output) / feature_file.name, feature_file, model_name, overwrite)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

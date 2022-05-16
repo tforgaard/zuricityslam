@@ -1,5 +1,6 @@
 from pathlib import Path
 import numpy as np
+import argparse
 
 def create_img_list(cuts_path, images_dir, output, overlap=25, fps=2):
 
@@ -10,7 +11,9 @@ def create_img_list(cuts_path, images_dir, output, overlap=25, fps=2):
         video_id = cut_file.name.split("_transitions")[0]
         image_folder = Path(images_dir) / video_id
 
-        assert image_folder.exists(), image_folder 
+        if not image_folder.exists():
+            print(f"could not find {image_folder}, skipping!")
+            continue
 
         Path(output).mkdir(exist_ok=True, parents=True)
 
@@ -43,9 +46,18 @@ def create_img_list(cuts_path, images_dir, output, overlap=25, fps=2):
                     for i in range(start_ind, stop_ind + 1):
                         out_file.write(str(images[i].relative_to(images_dir)) + "\n")
 
-
                 last_tranistion = transition
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--cuts_path', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/transitions_cropped"',
+                        help='Path to the dataset, default: %(default)s')
+    parser.add_argument('--images_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
+                        help='Path to the partioning of the datasets, default: %(default)s')
+    parser.add_argument('--output', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/image_splits',
+                        help='Path to the output directory, default: %(default)s')
+    parser.add_argument('--overlap', type=int, default=25)
+    parser.add_argument('--fps', type=int, default=2)
+    args = parser.parse_args()
 
-    create_img_list("./base/datasets/transitions", "./base/datasets/images", "./base/datasets/image_splits")
+    create_img_list(**args.__dict__)
