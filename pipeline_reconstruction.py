@@ -3,8 +3,8 @@ import os
 import subprocess
 import tempfile
 from time import sleep
+from filelock import Timeout, FileLock
 
-from hloc.reconstruction import run_reconstruction
 
 # fix file permission problems
 os.umask(0o002)
@@ -14,12 +14,13 @@ base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 images_path = base_dir / 'datasets' / 'images'
 image_splits = base_dir / 'datasets' / 'image_splits'
-output_path = base_dir / 'outputs' / 'models-split-testing'
+output_path = base_dir / 'outputs' / 'model-reconstructions'
 
 # scene_ids = ['_jJGc4r1mzk_part0']
-scene_ids = [p.name.split("_images")[0] for p in sorted(list(image_splits.iterdir()))][:8]
+scene_ids = [p.name.split("_images")[0]
+             for p in sorted(list(image_splits.iterdir()))][:8]
 
-P=4 # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
+P = 4  # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
 
 indexes = [i for i in range(P)]
 processes = [None]*P
@@ -28,6 +29,7 @@ ready = [False]*P
 while max(indexes) < len(scene_ids) and sum(ready) == P:
     for i, ind in enumerate(indexes):
         if processes[i] is not None:
+            (p, f) = processes[i]
             if p.poll() is not None:
                 f.seek(0)
                 print(f.read())
@@ -35,16 +37,25 @@ while max(indexes) < len(scene_ids) and sum(ready) == P:
                 ready[i] = True
                 indexes[i] += P
         else:
-            ready[i] = True      
+            ready[i] = True
 
         if ready[i] and ind < len(scene_ids):
             scene_id = scene_ids[ind]
-            output_model = output_path / scene_id
-            sfm_dir = output_model / 'sfm_sp+sg'
+            model_path = output_path / scene_id
+
+            lock_path = output_path / f"{scene_id}.lock"
+            lock = FileLock(lock_path, timeout=5)
+            if lock.is_locked():
+                indexes[i] += P
+                processes[i] = None
+                continue
+
+            sfm_dir = model_path / 'sfm_sp+sg'
             database = sfm_dir / 'database.db'
 
             f = tempfile.TemporaryFile()
-            p = subprocess.Popen(['python3', '-c', f"from hloc.reconstruction import run_reconstruction; run_reconstruction({sfm_dir}, {database}, {images_path})"], stdout=f)
+            p = subprocess.Popen(
+                ['python3', '-c', f"from cityslam.mapping import reconstruction_subroutine; reconstruction_subroutine.main({str(sfm_dir)}, {str(database)}, {str(images_path)}, {str(lock_path)})"], stdout=f)
 
             processes[i] = (p, f)
             ready[i] = False
