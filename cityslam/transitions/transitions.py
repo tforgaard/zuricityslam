@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import argparse
 from pathlib import Path
+from fractions import Fraction
 import numpy as np
 import ffmpeg
 import torch
@@ -81,11 +82,7 @@ def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, cut_fi
     if not Path(f"{cut_file.parent / cut_file.stem}_cropped.txt").is_file() or overwrite:
         probe = ffmpeg.probe(video_file_path)
         video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
-        video_fps = float(video_info['r_frame_rate'].split('/')[0])
-        
-        # Sometimes the frame rate is given as frames per 1000 seconds?
-        if video_fps / 1000 > 1.0:
-            video_fps = video_fps / 1000
+        video_fps = float(Fraction(video_info['r_frame_rate']))
         
         print(f"video fps: {video_fps}")
         max_frames = int(video_fps*max_scene_length)
@@ -131,7 +128,7 @@ def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, cut_fi
     else:
         print(f"Already found cropped transitions for video {video_file_path.stem}")
 
-def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_length, fps, threshold, overwrite=False):
+def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_length, fps, threshold, overwrite_cuts=True, overwrite_trans=False):
     videos_dir = Path(videos_dir)
     assert videos_dir.exists(), videos_dir    
 
@@ -157,7 +154,7 @@ def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_
         output_file = Path(output) / f"{video_id}_transitions.txt"
         output_file.parent.mkdir(exist_ok=True, parents=True)
         
-        if not output_file.exists() or overwrite:
+        if not output_file.exists() or overwrite_trans:
             
             try:
                 video_stream, err = ffmpeg.input(video_file_path).output(
@@ -184,7 +181,7 @@ def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_
         else:
             print(f"Already found transitions for video {video_file_path.stem}")
         
-        add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, output_file, fps, overwrite) 
+        add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, output_file, fps, overwrite_cuts) 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -212,8 +209,10 @@ if __name__ == "__main__":
     parser.add_argument('--threshold', type=float,
                         default=0.5,
                         help='transition threshold')
-    parser.add_argument('--overwrite', action="store_true",
-                        default=False)                
+    parser.add_argument('--overwrite_cuts', action="store_true",
+                        default=True)                
+    parser.add_argument('--overwrite_trans', action="store_true",
+                        default=False)    
 
     args = parser.parse_args()
     main(**args.__dict__)
