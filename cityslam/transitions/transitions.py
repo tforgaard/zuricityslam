@@ -78,8 +78,8 @@ def predictions_to_scenes(predictions: np.ndarray, threshold: float = 0.5):
 
         return np.array(scenes, dtype=np.int32)
 
-def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, cut_file, fps=2, overwrite=False):
-    if not Path(f"{cut_file.parent / cut_file.stem}_cropped.txt").is_file() or overwrite:
+def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, transition_file, output_cropped_file, fps=2, overwrite=False):
+    if not output_cropped_file.exists() or overwrite:
         probe = ffmpeg.probe(video_file_path)
         video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
         video_fps = float(Fraction(video_info['r_frame_rate']))
@@ -102,9 +102,9 @@ def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, cut_fi
 
         new_scenes = []
         try:
-            with open(cut_file, 'r') as file:
+            with open(transition_file, 'r') as file:
                 scenes = np.loadtxt(file, dtype=int)
-                scenes = np.atleast_2d(scenes)     
+                scenes = np.atleast_2d(scenes)
                 for i, (scene_start, scene_end) in enumerate(scenes):
                     scene_length = scene_end - scene_start
                     whole_maxes = int(scene_length // max_frames)
@@ -120,7 +120,7 @@ def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, cut_fi
                             transition = whole_maxes == 0
                             new_scenes.append([int((scene_start + (whole_maxes)*max_frames) // fps_ratio), int(scene_end // fps_ratio), transition])
                 
-            with open(f"{cut_file.parent / cut_file.stem}_cropped.txt", 'w') as file:
+            with open(output_cropped_file, 'w') as file:
                     np.savetxt(file, new_scenes, fmt="%d")
         except Exception as e:
             print(e)
@@ -128,7 +128,7 @@ def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, cut_fi
     else:
         print(f"Already found cropped transitions for video {video_file_path.stem}")
 
-def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_length, fps, threshold, overwrite_cuts=True, overwrite_trans=False):
+def main(videos_dir, video_ids, model_path, output_transitions, output_cropped, max_scene_length, min_scene_length, fps, threshold, overwrite_cuts=False, overwrite_trans=False):
     videos_dir = Path(videos_dir)
     assert videos_dir.exists(), videos_dir    
 
@@ -151,7 +151,7 @@ def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_
             print(f"could not find video with id {video_id}, skipping")
             continue
 
-        output_file = Path(output) / f"{video_id}_transitions.txt"
+        output_file = Path(output_transitions) / f"{video_id}_transitions.txt"
         output_file.parent.mkdir(exist_ok=True, parents=True)
         
         if not output_file.exists() or overwrite_trans:
@@ -161,7 +161,6 @@ def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_
                         "pipe:", format="rawvideo", pix_fmt="rgb24", s="48x27"
                     ).run(capture_stdout=True, capture_stderr=True)
             except ffmpeg.Error as e:
-                print(video_file_path)
                 #print('stdout:', e.stdout.decode('utf8'))
                 #print('stderr:', e.stderr.decode('utf8'))
                 #raise e
@@ -181,7 +180,8 @@ def main(videos_dir, video_ids, model_path, output, max_scene_length, min_scene_
         else:
             print(f"Already found transitions for video {video_file_path.stem}")
         
-        add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, output_file, fps, overwrite_cuts) 
+        output_cropped_file = Path(output_cropped) / f"{video_id}_transitions_cropped.txt"
+        add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, output_file, output_cropped_file, fps, overwrite_cuts) 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -194,9 +194,12 @@ if __name__ == "__main__":
     parser.add_argument('--model_path', type=str,
                         default='./', #'/cluster/project/infk/courses/252-0579-00L/group07/data/dev/TransNetV2/inference/transnetv2-weights',
                         help='path to transiton detection model weights')
-    parser.add_argument('--output', type=Path,
+    parser.add_argument('--output_transitions', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/transitions',
                         help='where to store list of cuts for specific video')
+    parser.add_argument('--output_cropped', type=Path,
+                        default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/transitions_cropped',
+                        help='where to store list of cropped scenes for specific video')
     parser.add_argument('--max_scene_length', type=int,
                         default=5*60,
                         help='number of seconds of max scene length')
@@ -210,7 +213,7 @@ if __name__ == "__main__":
                         default=0.5,
                         help='transition threshold')
     parser.add_argument('--overwrite_cuts', action="store_true",
-                        default=True)                
+                        default=False)                
     parser.add_argument('--overwrite_trans', action="store_true",
                         default=False)    
 
