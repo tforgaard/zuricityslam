@@ -67,6 +67,8 @@ def main(queries_path, input_type, query, num_vids, max_results=100, overwrite=F
         with open(queries_path, 'rb') as file:
             queries = pickle.load(file)
 
+    queries_path.parent.mkdir(exist_ok=True, parents=True)
+
     if query in queries and not overwrite:
         logger.info("Query is already cached, skipping ahead...")
         results = queries[query]
