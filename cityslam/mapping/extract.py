@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# Inspired from hloc example SfM_pipeline.py
-
 from pathlib import Path
 import argparse
 
@@ -10,7 +8,7 @@ from hloc import extract_features
 from . import update_features
 
 
-def main(images_path, outputs, video_id):
+def main(images_path, outputs, video_id, overwrite=False):
 
     output_model = outputs / video_id
 
@@ -41,16 +39,15 @@ def main(images_path, outputs, video_id):
     print(f"num images : {len(image_list)}")
     
     # We extract global descriptors with NetVLAD and find for each image the most similar ones.
-    extract_features.main(retrieval_conf, images_path, output_model, image_list=image_list)
+    extract_features.main(retrieval_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
 
     # ## Extract local features
-    extract_features.main(feature_conf, images_path, output_model, image_list=image_list)
+    extract_features.main(feature_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
 
     # Copy local and global features and from our file to the 'joint' feature files
     # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-    overwrite=True
-    update_features.main(output_model, outputs, overwrite=overwrite)
 
+    update_features.main(output_model, outputs, overwrite=overwrite)
 
 
 if __name__ == "__main__":
@@ -61,6 +58,7 @@ if __name__ == "__main__":
                         help='Path to the output directory, default: %(default)s')
     parser.add_argument('--video_id', type=str, default='W25QdyiFnh0',
                         help='video id for subfolder, %(default)s')
+    parser.add_argument('--overwrite', action="store_true")
     args = parser.parse_args()
     
     main(**args.__dict__)
