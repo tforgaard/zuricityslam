@@ -9,6 +9,7 @@ from pycolmap import CameraMode
 
 from hloc import extract_features, match_features, reconstruction, visualization, pairs_from_retrieval
 from hloc.utils import viz
+from hloc.utils.parsers import parse_image_list
 from hloc import pairs_from_sequence
 from . import update_features
 
@@ -19,7 +20,7 @@ from . import update_features
 confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
 
-def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5):
+def main(images_path, image_splits, outputs, video_id, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5):
 
     output_model = outputs / video_id
     sfm_dir = output_model / 'sfm_sp+sg'
@@ -50,7 +51,8 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
     if pairing in confs['pairing']:
         print("getting images...")
         # Image list is the the relative path to the image from the top most image root folder
-        image_list = get_images(images_path, subfolder=video_id)
+        # image_list = get_images(images_path, subfolder=video_id)
+        image_list = parse_image_list(Path(image_splits) / f"{video_id}_images.txt")
         print(f"num images : {len(image_list)}")
         
         if pairing == 'sequential':
@@ -112,6 +114,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--images_path', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
                         help='Path to the dataset, default: %(default)s')
+    parser.add_argument('--image_splits', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/image_splits',
+                        help='Path to the partioning of the datasets, default: %(default)s')
     parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/outputs',
                         help='Path to the output directory, default: %(default)s')
     parser.add_argument('--video_id', type=str, default='W25QdyiFnh0',
