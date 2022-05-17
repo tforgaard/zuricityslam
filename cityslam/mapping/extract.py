@@ -39,15 +39,18 @@ def main(images_path, outputs, video_id, overwrite=False):
     print(f"num images : {len(image_list)}")
     
     # We extract global descriptors with NetVLAD and find for each image the most similar ones.
-    extract_features.main(retrieval_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
+    retrieval_path = extract_features.main(retrieval_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
+
+    # Copy global features from our file to the 'joint' feature files
+    # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
+    update_features.main(retrieval_path, outputs, overwrite=overwrite)
 
     # ## Extract local features
-    extract_features.main(feature_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
+    features_path = extract_features.main(feature_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
 
-    # Copy local and global features and from our file to the 'joint' feature files
+    # Copy local features from our file to the 'joint' feature files
     # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-
-    update_features.main(output_model, outputs, overwrite=overwrite)
+    update_features.main(features_path, outputs, overwrite=overwrite)
 
 
 if __name__ == "__main__":
