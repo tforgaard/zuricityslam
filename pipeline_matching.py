@@ -14,11 +14,11 @@ base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 images_path = base_dir / 'datasets' / 'images'
 image_splits = base_dir / 'datasets' / 'image_splits'
-output_path = base_dir / 'outputs' / 'reconstructions'
+output_path = base_dir / 'outputs' / 'models-features'
 
-# scene_ids = ['_jJGc4r1mzk_part0']
-scene_ids = [p.name.split("_images")[0] for p in sorted(list(image_splits.iterdir()))][:8]
-
+# scene_ids = ['lN4j2iiFpgQ_part2']# ['_NmYvuEILw4_part2'] #, '_jJGc4r1mzk_part1']
+scene_ids = [p.name.split("_images")[0] for p in sorted(list(image_splits.iterdir()))]
+# print(scene_ids)
 
 for scene_id in scene_ids:
     lock_path = output_path / f"{scene_id}.lock"

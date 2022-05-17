@@ -5,7 +5,7 @@ import argparse
 import h5py
 from filelock import Timeout, FileLock
 
-def copy_part(common_feature_file, single_feature_file, model_name, overwrite=False):
+def copy_part(single_feature_file, common_feature_file, model_name, overwrite=False):
 
     assert Path(single_feature_file).exists(), single_feature_file
 
@@ -27,16 +27,17 @@ def copy_part(common_feature_file, single_feature_file, model_name, overwrite=Fa
                     single_f.copy(model_name, common_f)
 
 
-def main(model_dir, output, overwrite=False):
+def main(feature_file, output, overwrite=False):
+        
+    model_name = feature_file.parent.name
+    if "_part" in model_name:
+        model_name = model_name.split("_part")[0]
 
-    feature_files = Path(model_dir).glob("*.h5")
-    for feature_file in feature_files:
-        
-        model_name = feature_file.parent.name
-        if "_part" in model_name:
-            model_name = model_name.split("_part")[0]
-        
-        copy_part(Path(output) / feature_file.name, feature_file, model_name, overwrite)
+    output_feature_path = Path(output) / feature_file.name
+    
+    copy_part(feature_file, output_feature_path, model_name, overwrite)
+
+    return output_feature_path
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
