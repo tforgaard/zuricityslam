@@ -27,4 +27,4 @@ for scene_id in scene_ids:
     lock = FileLock(lock_path, timeout=5)
     with lock:
         reconstruction = single_video_pipeline.main(
-            images_path, image_list_path, output_path, video_id=scene_id, window_size=2, num_loc=2, pairing='sequential+retrieval', run_reconstruction=False)
+            images_path, image_list_path, output_path, video_id=scene_id, window_size=6, num_loc=6, pairing='sequential+retrieval', run_reconstruction=False)
