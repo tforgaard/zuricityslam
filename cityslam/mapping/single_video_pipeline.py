@@ -33,7 +33,15 @@ confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
 def main(images_path, image_splits, outputs, video_id, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5, overwrite=False):
 
-    output_model = outputs / video_id
+
+    output_model_base = outputs / video_id
+    output_model = output_model_base
+    part = None
+    if "_part" in video_id:
+        video_id, seq_n = video_id.split("_part")
+        part = f"part{seq_n}"
+        output_model = output_model_base / part
+
     sfm_dir = output_model / 'sfm_sp+sg'
 
     retrieval_conf = extract_features.confs['netvlad']
@@ -62,7 +70,12 @@ def main(images_path, image_splits, outputs, video_id, window_size, num_loc, pai
     print("getting images...")
     # Image list is the the relative path to the image from the top most image root folder
     # image_list = get_images(images_path, subfolder=video_id)
-    image_list = parse_image_list(Path(image_splits) / f"{video_id}_images.txt")
+    if part:
+        images_path = Path(image_splits) / f"{video_id}_{part}_images.txt"
+    else:
+        images_path = Path(image_splits) / f"{video_id}_images.txt"
+    
+    image_list = parse_image_list(images_path)
     print(f"num images : {len(image_list)}")
 
     # Check if we find the 'joint' feature files
@@ -75,13 +88,13 @@ def main(images_path, image_splits, outputs, video_id, window_size, num_loc, pai
             # Check if we find our features in the 'joint' feature file
             if not features_exists(joint_retrieval_path, image_list) or overwrite:
                 single_retrieval_path = extract_features.main(
-                    retrieval_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
+                    retrieval_conf, images_path, output_model_base, image_list=image_list, overwrite=overwrite)
 
                 # Copy global features and from our file to the 'joint' feature files
                 # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
                 joint_retrieval_path = update_features.main(single_retrieval_path, outputs, overwrite)
 
-            single_retrieval_path = next(output_model.glob("global-feats-*.h5"), None)
+            single_retrieval_path = next(output_model_base.glob("global-feats-*.h5"), None)
             if single_retrieval_path is None:
                 single_retrieval_path = joint_retrieval_path
 
@@ -111,7 +124,7 @@ def main(images_path, image_splits, outputs, video_id, window_size, num_loc, pai
     # ## Extract and match local features
     # Check if we find our features in the 'joint' feature file
     if not features_exists(joint_feature_path, image_list) or overwrite:
-        single_feature_path = extract_features.main(feature_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
+        single_feature_path = extract_features.main(feature_conf, images_path, output_model_base, image_list=image_list, overwrite=overwrite)
 
         # Copy local and global features and from our file to the 'joint' feature files
         # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
@@ -122,7 +135,7 @@ def main(images_path, image_splits, outputs, video_id, window_size, num_loc, pai
     
     # We use our single feature file to allow more parrallel operations
     # if not found default to joint feature file    
-    single_feature_path = next(output_model.glob("feats-*.h5"), None)
+    single_feature_path = next(output_model_base.glob("feats-*.h5"), None)
     if single_feature_path is None:
         single_feature_path = joint_feature_path
 
