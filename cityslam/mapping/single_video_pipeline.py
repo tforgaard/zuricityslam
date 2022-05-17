@@ -33,15 +33,19 @@ confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
 def main(images_path, image_splits, outputs, video_id, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5, overwrite=False):
 
-
-    output_model_base = outputs / video_id
-    output_model = output_model_base
-    part = None
     if "_part" in video_id:
         video_id, seq_n = video_id.split("_part")
         part = f"part{seq_n}"
+        
+        output_model_base = outputs / video_id
         output_model = output_model_base / part
 
+    else:
+        part = None
+
+        output_model_base = outputs / video_id
+        output_model = output_model_base
+    
     sfm_dir = output_model / 'sfm_sp+sg'
 
     retrieval_conf = extract_features.confs['netvlad']
