@@ -23,8 +23,8 @@ def copy_part(single_feature_file, common_feature_file, model_name, overwrite=Fa
                     del common_f[model_name]
 
                 if model_name not in list(common_f.keys()):
-                    # common_f[model_name] = h5py.ExternalLink(single_feature_file, model_name)
-                    single_f.copy(model_name, common_f)
+                    common_f[model_name] = h5py.ExternalLink(single_feature_file, model_name)
+                    # single_f.copy(model_name, common_f)
 
 
 def main(feature_file, output, overwrite=False):
@@ -41,8 +41,8 @@ def main(feature_file, output, overwrite=False):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model_dir', type=Path, default='/cluster/home/tforgaard/Projects/zuricityslam/base/outputs/models-merge-testing2/TZIHy1cZJ-U')
-    parser.add_argument('--output', type=Path, default= '/cluster/home/tforgaard/Projects/zuricityslam/base/outputs/models-merge-testing2/',
+    parser.add_argument('--feature_file', type=Path, default='/cluster/home/tforgaard/Projects/zuricityslam/base/outputs/model-reconstructions-testing/2obsKLoZQdU/global-feats-netvlad.h5')
+    parser.add_argument('--output', type=Path, default= '/cluster/home/tforgaard/Projects/zuricityslam/base/outputs/model-reconstructions-testing/tmp',
                         help='Path to the output directory, default: %(default)s')
     parser.add_argument('--overwrite', action="store_true")
     
