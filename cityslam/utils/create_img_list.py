@@ -40,7 +40,8 @@ def create_img_list(cuts_path, images_dir, output, overlap=25, fps=2):
                     # add next 25 images                        
                     stop_ind = min(scene_end + overlap, len(images) - 2)
                 
-                image_list_file = Path(output) / f"{video_id}_part{part}_images.txt"
+                image_list_file = Path(output) / video_id / f"part{part}_images.txt"
+                image_list_file.parent.mkdir(parents=True, exist_ok=True)
                 with open(image_list_file, 'w+') as out_file:
 
                     for i in range(start_ind, stop_ind + 1):
@@ -50,11 +51,11 @@ def create_img_list(cuts_path, images_dir, output, overlap=25, fps=2):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--cuts_path', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/transitions_cropped"',
+    parser.add_argument('--cuts_path', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/transitions_cropped',
                         help='Path to the dataset, default: %(default)s')
     parser.add_argument('--images_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
                         help='Path to the partioning of the datasets, default: %(default)s')
-    parser.add_argument('--output', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/image_splits',
+    parser.add_argument('--output', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/image_splits_new',
                         help='Path to the output directory, default: %(default)s')
     parser.add_argument('--overlap', type=int, default=25)
     parser.add_argument('--fps', type=int, default=2)

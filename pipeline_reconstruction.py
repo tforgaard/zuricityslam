@@ -14,38 +14,26 @@ base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 images_path = base_dir / 'datasets' / 'images'
 image_splits = base_dir / 'datasets' / 'image_splits'
-output_path = base_dir / 'outputs' / 'model-reconstructions'
+output_path = base_dir / 'outputs' / 'models-features'
 
-# scene_ids = ['_jJGc4r1mzk_part0']
-scene_ids = [p.name.split("_images")[0]
-             for p in sorted(list(image_splits.iterdir()))][:8]
 
-P = 4  # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
+scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in sorted(list(image_splits.glob("**/*_images.txt")))]
+
+P = min(4, len(scene_ids))  # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
 
 indexes = [i for i in range(P)]
 processes = [None]*P
-ready = [False]*P
+ready = [True]*P
 
-while max(indexes) < len(scene_ids) and sum(ready) == P:
+while min(indexes) < len(scene_ids):
     for i, ind in enumerate(indexes):
-        if processes[i] is not None:
-            (p, f) = processes[i]
-            if p.poll() is not None:
-                f.seek(0)
-                print(f.read())
-                f.close()
-                ready[i] = True
-                indexes[i] += P
-        else:
-            ready[i] = True
-
         if ready[i] and ind < len(scene_ids):
             scene_id = scene_ids[ind]
             model_path = output_path / scene_id
 
             lock_path = output_path / f"{scene_id}.lock"
             lock = FileLock(lock_path, timeout=5)
-            if lock.is_locked():
+            if lock.is_locked:
                 indexes[i] += P
                 processes[i] = None
                 continue
@@ -55,9 +43,26 @@ while max(indexes) < len(scene_ids) and sum(ready) == P:
 
             f = tempfile.TemporaryFile()
             p = subprocess.Popen(
-                ['python3', '-c', f"from cityslam.mapping import reconstruction_subroutine; reconstruction_subroutine.main({str(sfm_dir)}, {str(database)}, {str(images_path)}, {str(lock_path)})"], stdout=f)
+                ['python3', '-m', 
+                'cityslam.mapping.reconstruction_subroutine', 
+                '--sfm_dir', str(sfm_dir), 
+                '--database', str(database), 
+                '--images_path', str(images_path), 
+                '--lock_path', str(lock_path)], stdout=f)
 
             processes[i] = (p, f)
             ready[i] = False
+
+        if processes[i] is not None:
+            (p, f) = processes[i]
+            if p.poll() is not None:
+
+                f.seek(0)
+                print(f.read())
+                f.close()
+
+                ready[i] = True
+                processes[i] = None
+                indexes[i] += P
 
     sleep(5)
