@@ -14,7 +14,8 @@ base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 videos_path = base_dir / 'datasets' / 'videos'
 images_path = base_dir / 'datasets' / 'images'
-queries_path = base_dir / 'datasets' / 'queries'
+queries_base_path = base_dir / 'datasets' / 'queries'
+# apireturns_path = base_dir / 'datasets' / 'apireturns'
 output_path = base_dir / 'outputs' / 'models'
 
 num_vids = 1
@@ -26,9 +27,10 @@ num_vids = 1
 # set overwrite to True if you want to ignore cached files
 
 # Fetch videos for query
-#queries_path = Path(queries_path.stem + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json")
-queries_path = Path(queries_path.stem + "_20220510_164751.json")
-video_ids = videointerface.main(queries_path, "coordinates", "47.371667, 8.542222", max_results=1, overwrite=False, verbose=True)
+# apireturns_path = Path(apireturns_path.stem + "_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json")
+queries_path = Path(queries_base_path.stem + "stored.json")
+blacklist_path = Path(queries_base_path.stem + "blacklist.json")
+video_ids = videointerface.main(queries_path, blacklist_path, "coordinates", "47.371667, 8.542222", max_results=25, overwrite=False, verbose=False)
 
 # Download videos
 downloader.main(videos_path, queries_path, format="wv")

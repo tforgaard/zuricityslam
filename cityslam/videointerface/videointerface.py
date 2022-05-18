@@ -32,7 +32,7 @@ youtube_queries = ["City Walk", "walk",
 # JSON capabilities
 import json
 
-def main(queries_path, input_type, query, max_results, overwrite=False, verbose=True):
+def main(queries_path, blacklist_path, input_type, query, max_results, overwrite=False, verbose=True):
 
     if not verbose:
         logger.setLevel('ERROR')
@@ -45,7 +45,8 @@ def main(queries_path, input_type, query, max_results, overwrite=False, verbose=
         'video_id': np.array([], dtype=object),
         'title': np.array([], dtype=object),
         'rank': np.array([], dtype=object),
-        'hits': np.array([], dtype=object)
+        'hits': np.array([], dtype=object),
+        'location_co': np.array([], dtype=object)
     }
 
     # get query from user
@@ -67,33 +68,34 @@ def main(queries_path, input_type, query, max_results, overwrite=False, verbose=
     queries = {}
     # check if query is cached
     #queries_path = queries_path / "queries.pkl"
+    print(queries_path)
     if queries_path.exists() and not overwrite:
         with open(queries_path, 'r') as openfile:
             json_object = json.load(openfile)
 
-    if query in queries and not overwrite:
-        logger.info("Query is already cached, skipping ahead...")
-        results = queries[query]
-
+        #read queries from file
+        if location_co in json_object['location_co'] and not overwrite:
+            logger.info("Query is already cached, skipping ahead...")            
+            load_results_form_JSON_object(json_object, location_co, results)
     else:
+        logger.info("Query is not done or overwritten, starting new search...")
         # run queries
         for youtube_query in youtube_queries:
             yt_interface(youtubeAPI, youtube_query,
-                         results, location_co, max_results)
+                        results, location_co, max_results)
 
         # order results found
         order_results(results)
 
-        # store query
-        store_query(queries_path, results);
+    # remove excluded videos
+    removeblacklist(results, blacklist_path)
 
-        # cache queries
-        # queries[query] = results
-        # with open(queries_path, 'wb+') as file:
-        #     pickle.dump(queries, file)
+    # store query
+    store_query(queries_path, results)
 
     if verbose:
         print_results(results)
+        pass
 
     # TODO fix max results !!!! This is temporary hack
     return list(results['video_id'][:max_results])
@@ -131,11 +133,11 @@ def yt_interface(youtubeAPI, query, results, location_co, max_results):
 
     for count, video_result in enumerate(response['items']):
         rank = max_results - count
-        add_video_to_results(results, video_result, rank)
+        add_video_to_results(results, video_result, rank, location_co)
 
 
 # //METHODES-DATAMANAGEMENT-----------------------------------------------////
-def add_video_to_results(results, video_result, rank):
+def add_video_to_results(results, video_result, rank, location_co):
 
     if video_result['id']['videoId'] in results['video_id']:
         results['rank'][results['video_id'] ==
@@ -151,6 +153,7 @@ def add_video_to_results(results, video_result, rank):
             results['title'], video_result['snippet']['title'])
         results['rank'] = np.append(results['rank'], rank)
         results['hits'] = np.append(results['hits'], 1)
+        results['location_co'] = np.append(results['location_co'], location_co)
 
 
 def order_results(results):
@@ -165,11 +168,11 @@ def order_results(results):
 
 def print_results(results):
 
-    print("num: videoID     (RNK in Cn) : videoTitle")
-    print("_________________________________________")
+    print("num: videoID     (RNK in Cn) : videoTitle ; query")
+    print("_________________________________________________")
     for count, video in enumerate(results['video_id']):
         print(str(count).zfill(3) + ": " + str(results['video_id'][count]) + " (" + str(results['rank'][count]).zfill(
-            3) + " in " + str(results['hits'][count]).zfill(2) + ")" + " : " + results['title'][count])
+            3) + " in " + str(results['hits'][count]).zfill(2) + ")" + " : " + results['title'][count] + " ; " + results['location_co'][count])
 
 # //METHODES-DATASTORAGE--------------------------------------------------////
 class NumpyEncoder(json.JSONEncoder):
@@ -181,16 +184,59 @@ class NumpyEncoder(json.JSONEncoder):
 def store_query(queries_path, results, humanformat=False):
     storagefilename=queries_path
     if humanformat:
-        resultsforjson = [{'video_id': video_id, 'title': title, 'rank': rank, 'hits': hits} for video_id, title, rank, hits in zip(results['video_id'], results['title'], results['rank'], results['hits'])]
+        resultsforjson = [{'video_id': video_id, 'title': title, 'rank': rank, 'hits': hits, 'location_co': location_co} for video_id, title, rank, hits, location_co in zip(results['video_id'], results['title'], results['rank'], results['hits'], results['location_co'])]
     # for entry in range(results['rank'].size):
     #     for key in results:
     #         json_dump(key + results[key][entry], outfile)
-    with open(storagefilename, "w") as outfile:        
+    with open(storagefilename, "w+") as outfile:        
         if humanformat:
             json.dump(resultsforjson, outfile)
         else:
             json.dump(results, outfile, cls=NumpyEncoder)
     pass
+
+
+def load_results_form_JSON_object(json_object, location_co ,results):
+    allstoredresults = {
+                'video_id': np.array([], dtype=object),
+                'title': np.array([], dtype=object),
+                'rank': np.array([], dtype=object),
+                'hits': np.array([], dtype=object),
+                'location_co': np.array([], dtype=object)
+    }
+    allstoredresults['video_id']=json_object['video_id']
+    allstoredresults['title']=json_object['title']
+    allstoredresults['rank']=json_object['rank']
+    allstoredresults['hits']=json_object['hits']
+    allstoredresults['location_co']=json_object['location_co']
+    for count, temp_loc in enumerate(allstoredresults['location_co']):
+        if temp_loc != (location_co):
+            allstoredresults['video_id'].delete(count)
+            allstoredresults['title'].delete(count)
+            allstoredresults['rank'].delete(count)
+            allstoredresults['hits'].delete(count)
+            allstoredresults['location_co'].delete(count)
+    results = allstoredresults
+
+    # cache queries
+    # queries[query] = results
+    # with open(queries_path, 'wb+') as file:
+    #     pickle.dump(queries, file)
+
+def removeblacklist(results, blacklist_path):
+    #if results['video_id'].size > 0:
+        with open(blacklist_path, 'r') as openfile:
+            blacklist = json.load(openfile)
+        for video_id in blacklist['video_id']:
+            if video_id in results['video_id']:
+                idx = np.where(results['video_id'] == video_id)   
+                #print(video_id, "is blacklisted ", idx)
+                results['video_id'] = np.delete(results['video_id'],(idx))
+                results['title'] = np.delete(results['title'],(idx))
+                results['rank'] = np.delete(results['rank'],(idx))
+                results['hits'] = np.delete(results['hits'],(idx))
+                results['location_co'] = np.delete(results['location_co'],(idx))
+
 
 # //METHODES-ARGUMENT-HANDLING--------------------------------------------////
 

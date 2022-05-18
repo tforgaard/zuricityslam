@@ -9,12 +9,13 @@ def main(output, path_video_ids, format, overwrite=False):
     output.mkdir(parents=True, exist_ok=True)
 
     
-    with open(path_video_ids, 'r') as openfile:
+    with open(path_video_ids, 'rb') as openfile:
         json_object = json.load(openfile)
 
     video_ids = json_object['video_id']
-    for video_id in video_ids:
-        print(video_id+"\n")
+    # print('Download this files:')
+    # for video_id in video_ids:
+    #     print(video_id)
     return
 
     ydl_opts = {
