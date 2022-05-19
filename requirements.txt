@@ -6,3 +6,4 @@ what3words==3.1.1
 ffmpeg-python
 opencv-python
 yt-dlp
+networkx
