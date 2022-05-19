@@ -6,6 +6,12 @@ from hloc import pairs_from_retrieval, localize_sfm, visualization
 from hloc.utils import viz_3d
 import pycolmap
 
+def model_path_2_name(model_path:str):
+    return str(model_path).replace("/","__")
+
+def model_name_2_path(model_path):
+    return Path(str(model_path).replace("__","/"))
+    
 def get_images_from_recon(sfm_model):
     """Get a sorted list of images in a reconstruction"""
     # NB! This will most likely be a SUBSET of all the images in a folder like images/gTHMvU3XHBk
