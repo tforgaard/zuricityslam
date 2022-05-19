@@ -5,6 +5,7 @@ from hloc import extract_features, match_features
 from hloc import pairs_from_retrieval, localize_sfm, visualization
 from hloc.utils import viz_3d
 import pycolmap
+import pickle
 
 def model_path_2_name(model_path:str):
     return str(model_path).replace("/","__")
@@ -54,6 +55,17 @@ def parse_pose_estimates(pose_estimate_file):
     
     return pose_dict
 
+def filter_pose_estimates(pose_estimates, pose_estimate_file, min_inliers):
+    new_pose_estimates = {}
+    with open(pose_estimate_file + f"_logs.pkl", "rb") as log_file:
+        log = pickle.load(log_file)
+        for img in pose_estimates.keys():
+            front_str = img.split('_img')[0]
+            inliers = len(log['loc'][front_str + '/' + img]['PnP_ret']['inliers'])
+            if inliers >= min_inliers:
+                new_pose_estimates[img] = pose_estimates[img]
+    return new_pose_estimates
+            
 
 def calculate_transform(pose1, pose2, scale=1.0):
     """Calculates the transformation which aligns model 1 with model 2, pose{1,2} is the pose of the same image in the two different models"""
@@ -78,9 +90,11 @@ def calculate_transform(pose1, pose2, scale=1.0):
 
     return transform
 
-def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error):
+
+def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers):
     # Load the estimates for the query poses in the frame of the reference model
     pose_estimates = parse_pose_estimates(results)
+    pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers)
     target_model = pycolmap.Reconstruction(target_sfm)
 
     max_inliers = 0
@@ -150,5 +164,6 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
             print(f"currently best query: {best_query}, scale: {scale1}, {max_inliers}/{len(pose_estimates.keys())} inliers")
         
         num_it += 1
+        #TODO return none if the best transform has too few inliers
 
     return best_transform

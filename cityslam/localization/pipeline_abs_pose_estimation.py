@@ -9,7 +9,7 @@ from hloc import pairs_from_retrieval, localize_sfm, visualization
 from hloc.utils import viz_3d
 import pycolmap
 
-def main(images, models, output_dir, num_loc, N, reference, target, max_it, scale_std, max_distance_error, max_angle_error):
+def main(images, models, output_dir, num_loc, N, reference, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers):
     
     # Setup the paths
     """
@@ -81,7 +81,7 @@ def main(images, models, output_dir, num_loc, N, reference, target, max_it, scal
         #ransac_thresh=12,
         covisibility_clustering=False)  
     
-    best_transform = RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error)    
+    best_transform = RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers)    
 
     # TODO: safe best transform
     print(best_transform)
@@ -130,7 +130,9 @@ if __name__ == "__main__":
     parser.add_argument('--max_distance_error', type=int, default=3,
                         help='Max iteration for RANSAC: %(default)s')
     parser.add_argument('--max_angle_error', type=int, default=5,
-                        help='Max iteration for RANSAC: %(default)s')                    
+                        help='Max iteration for RANSAC: %(default)s')
+    parser.add_argument('--min_inliers', type=int, default=100,
+                        help='Min matching inliers needed to be part of RANSAC: %(default)s')              
     args = parser.parse_args()
     
     # Run mapping
