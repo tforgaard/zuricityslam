@@ -7,20 +7,31 @@ from pathlib import Path
 import argparse
 from pycolmap import CameraMode
 
+
 from hloc import extract_features, match_features, reconstruction, visualization, pairs_from_retrieval
 from hloc.utils import viz
+from hloc.utils.parsers import parse_image_list
 from hloc import pairs_from_sequence
+from . import update_features
 
-# Run SfM reconstruction from scratch on a set of images.
+# from hloc.utils.io import list_h5_names
+# def features_exists(feature_path, images):
+#     skip_names = set(list_h5_names(feature_path) if feature_path.exists() else ())
+#     if set(images).issubset(set(skip_names)):
+#         print('Skipping the extraction.')
+#         return True
+#     return False
 
-# TODO for model merging utilize the loop closure by doing every ten seconds do retrevial to other sequences
 
 confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
 
-
-def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5):
-
+# Run SfM reconstruction from scratch on a set of images.
+def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, pairing, run_reconstruction, retrieval_interval=5, overwrite=False):
+    
     output_model = outputs / video_id
+    if 'part' in video_id:
+        output_model_base = output_model.parent
+
     sfm_dir = output_model / 'sfm_sp+sg'
 
     retrieval_conf = extract_features.confs['netvlad']
@@ -29,29 +40,23 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
 
     output_model.mkdir(exist_ok=True, parents=True, mode=0o777)
 
+    print("getting images...")
+    # Image list is the the relative path to the image from the top most image root folder
+    # image_list = get_images(images_path, subfolder=video_id)
+    image_list = parse_image_list(image_list_path)
+    print(f"num images : {len(image_list)}")
+
     # ## Find image pairs either via sequential pairing, image retrieval or eventually both
+    if pairing in confs['pairing']:        
+        if 'retrieval' in pairing:
+            # We extract global descriptors with NetVLAD and find for each image the most similar ones.
+            retrieval_path = extract_features.main(
+                retrieval_conf, images_path, output_model_base, image_list=image_list, overwrite=overwrite)
 
-    def get_images(image_path, subfolder=None):
-        globs = ['*.jpg', '*.png', '*.jpeg', '*.JPG', '*.PNG']
-        image_list = []
-        
-        if subfolder is not None:
-            image_path = image_path / subfolder
-        
-        for g in globs:
-            image_list += list(Path(image_path).glob(g))
+            # Copy global features and from our file to the 'joint' feature files
+            # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
+            update_features.main(retrieval_path, outputs, overwrite)
 
-        image_list = ["/".join(img.parts[-2:]) for img in image_list]
-            
-        image_list = sorted(list(image_list))
-        return image_list
-
-    if pairing in confs['pairing']:
-        print("getting images...")
-        # Image list is the the relative path to the image from the top most image root folder
-        image_list = get_images(images_path, subfolder=video_id)
-        print(f"num images : {len(image_list)}")
-        
         if pairing == 'sequential':
             sfm_pairs = output_model / f'pairs-sequential{window_size}.txt'
 
@@ -59,20 +64,12 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
                 sfm_pairs, image_list, features=None, window_size=window_size, quadratic=True)
 
         elif pairing == 'retrieval':
-            # We extract global descriptors with NetVLAD and find for each image the most similar ones.
-            retrieval_path = extract_features.main(
-                retrieval_conf, images_path, outputs, image_list=image_list)
-
             sfm_pairs = output_model / f'pairs-retrieval-netvlad{num_loc}.txt'
 
             pairs_from_retrieval.main(
                 retrieval_path, sfm_pairs, num_matched=num_loc)
 
         elif pairing == 'sequential+retrieval':
-            # We extract global descriptors with NetVLAD and find for each image the most similar ones.
-            retrieval_path = extract_features.main(
-                retrieval_conf, images_path, outputs, image_list=image_list)
-
             sfm_pairs = output_model / f'pairs-sequential{window_size}-retrieval-netvlad{num_loc}.txt'
 
             pairs_from_sequence.main(
@@ -83,14 +80,17 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
         raise ValueError(f'Unknown pairing method')
 
     # ## Extract and match local features
+    feature_path = extract_features.main(feature_conf, images_path, output_model_base, image_list=image_list, overwrite=overwrite)
 
-    feature_path = extract_features.main(feature_conf, images_path, outputs, image_list=image_list)
+    # Copy local and global features and from our file to the 'joint' feature files
+    # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
+    update_features.main(feature_path, outputs, overwrite)
 
     # output file for matches
     matches = Path(output_model, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
-                
+    
     match_path = match_features.main(
-        matcher_conf, sfm_pairs, features=feature_path, matches=matches)
+        matcher_conf, sfm_pairs, features=feature_path, matches=matches, overwrite=overwrite)
 
     # ## 3D reconstruction
     # Run COLMAP on the features and matches.
@@ -101,14 +101,15 @@ def main(images_path, outputs, video_id, window_size, num_loc, pairing, run_reco
 
     return model
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--images_path', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
                         help='Path to the dataset, default: %(default)s')
+    parser.add_argument('--image_splits', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/image_splits',
+                        help='Path to the partioning of the datasets, default: %(default)s')
     parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/outputs',
                         help='Path to the output directory, default: %(default)s')
-    parser.add_argument('--video_id', type=str, default='W25QdyiFnh0',
+    parser.add_argument('--video_id', type=str, default='W25QdyiFnh0/part0',
                         help='video id for subfolder, %(default)s')
     parser.add_argument('--window_size', type=int, default=6,
                         help="Size of the window of images to match sequentially, default: %(default)s")
@@ -120,6 +121,7 @@ if __name__ == "__main__":
                         help=f'Pairing method, default: %(default)s', choices=confs['pairing'])
     parser.add_argument('--run_reconstruction', action="store_true",
                         help="If we want to run the pycolmap reconstruction or not")
+    parser.add_argument('--overwrite', action="store_true")
     args = parser.parse_args()
     
     # Run mapping
