@@ -16,10 +16,9 @@ images_path = base_dir / 'datasets' / 'images'
 image_splits = base_dir / 'datasets' / 'image_splits'
 output_path = base_dir / 'outputs' / 'models-features'
 
-
 scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in sorted(list(image_splits.glob("**/*_images.txt")))]
 
-P = min(4, len(scene_ids))  # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
+P = min(8, len(scene_ids))  # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
 
 indexes = [i for i in range(P)]
 processes = [None]*P

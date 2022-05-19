@@ -2,10 +2,12 @@
 from filelock import Timeout, FileLock
 import argparse
 from pathlib import Path
+import os
 
 from hloc.reconstruction import run_reconstruction
 
 def main(sfm_dir, database, images_path, lock_path):
+    os.umask(0o002)
     lock = FileLock(lock_path, timeout=5)
     with lock:
         run_reconstruction(sfm_dir, database, images_path)
