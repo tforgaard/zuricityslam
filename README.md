@@ -93,43 +93,58 @@ See scripts / code for more info about the different parameters
 
 ## ToDo-List:
 
-- [ ] ~~video interface - Place search (TH)~~
-- [x] video interface - Download method clean up (SH)
-- [x] video interface - Installer for Python libraries (SH)
-- [x] video interface - Interface Method (SH)
-- [x] video interface - Cache query results (KS)
-    - [x] add option to do dry run without downloading to just save queries
-    - [x] add option to specify how many videos to download/find
-	- [ ] video interface - cache as json (TH)
+- [ ] Video Interface
+	- [x] Download method clean up (SH)
+	- [x] Installer for Python libraries (SH)
+	- [x] Interface Method (SH)
+	- [x] Cache query results (KS)
+		- [x] add option to do dry run without downloading to just save queries
+		- [x] add option to specify how many videos to download/find
+		- [ ] video interface - cache as json (TH)
 
-- [x] Pre-Processing Frame Splitting (TH)
-- [ ] ~~Pre-Processing opt. Frame splitting based on optical flow, i.e. [iVS3D](https://github.com/iVS3D/iVS3D) (tA)~~
-- [ ] Pre-Processing Transition Splitting (KS)
-- [ ] Pre-Processing Segment videos (KS)
-	- [ ] add option for segment length and overlap
-- [ ] Pre-Processing multiprocessing video to image conversion (SK)
+- [ ] Pre-Processing  
+	- [x] Pre-Processing Frame Splitting (TH)
+	- [ ] ~~Pre-Processing opt. Frame splitting based on optical flow, i.e. [iVS3D](https://github.com/iVS3D/iVS3D) (tA)~~
+	- [x] Pre-Processing Transition Splitting (KS)
+	- [x] Pre-Processing Segment videos (KS)
+		- [x] add option for segment length and overlap
+		- [x] remove too short scenes
+	- [ ] ~~Pre-Processing multiprocessing video to image conversion (SK)~~
 
-- [x] Mapping - Add sequential pairing (KS\\/TF)
-- [x] Mapping - Make callable main function (KS\\/TF)
-- [x] Mapping - Merge sequential pairing and retrieval (global) pairing (KS\\/TF)
-- [x] Mapping - Clean up mapping functions and folder names (KS\\/TF)
-- [x] Mapping - Make optimized sequential and retrieval (global) pairing (KS\\/TF)
-- [ ] Mapping / hloc_for - make incremental_mapper options conf and do some testing
-- [ ] ~~Mapping - Maybe add weighting to retrieval function to give images far away in the sequence higher score than images close in the sequence~~
-- [ ] Mapping - Sucessfully run mapping on a complete zurich city walk sequence (KS\\/TF)
-	- [x] Convert video to jpgs
-	- [ ] Increase number of sequential matches and retrieval matches
-    - [ ] Mapping - min_num_matches can probably be much lower, i.e., 5?
-	- [ ] Mapping - init_min_tri_angle/min_tri_angle or something can probably be lower
-	- [x] Add snapshot to colmap reconstruction scripts...
-- [ ] Merging - look into pipeline Aachen (A) for absolute pose estimation
+- [ ] Mapping 
+	- [x] Add sequential pairing (KS\\/TF)
+	- [x] Make callable main function (KS\\/TF)
+	- [x] Merge sequential pairing and retrieval (global) pairing (KS\\/TF)
+	- [x] Clean up mapping functions and folder names (KS\\/TF)
+	- [x]  Make optimized sequential and retrieval (global) pairing (KS\\/TF)
+	- [ ] Mapping / hloc_for - make incremental_mapper options conf and do some testing
+	- [ ] ~~ Maybe add weighting to retrieval function to give images far away in the sequence higher score than images close in the sequence~~
+	- [ ]  Sucessfully run mapping on a complete zurich city walk sequence (KS\\/TF)
+		- [x] Convert video to jpgs
+		- [ ] Increase number of sequential matches and retrieval matches
+		- [ ] min_num_matches can probably be much lower, i.e., 5?
+		- [ ] init_min_tri_angle/min_tri_angle or something can probably be lower
+		- [x] Add snapshot to colmap reconstruction scripts...
+	- [ ] Merging - look into pipeline Aachen (A) for absolute pose estimation
 
-- [x] pipeline - global call method (TH,KS\\/TF)
-- [x] adding Tasks to ToDo List(KS/\\TF)
-- [x] add necesseary requirements for this project (tA)
-- [x] make it an installable project (tA)
-- [ ] try to follow [PEP8 style guidelines](https://peps.python.org/pep-0008/), install i.e. autopep8 (tA)
-- [x] MTP - presentation slides ready (A)
+- [ ] Merging
+	- [ ] Create notebook draft of first merging pipeline (TH)
+	- [ ] Create pipeline from draft (SH)
+	- [ ] RANSAC filter inliers (KS)
+
+- [ ] Other 
+	- [x] pipeline - global call method (TH,KS\\/TF)
+	- [x] add necesseary requirements for this project (tA)
+	- [x] make it an installable project (tA)
+	- [x] MTP - presentation slides ready (A)
+	- [ ] Create poster for final presentation (TH)
+		- [ ] motivation / problem definition, (Tom)
+		- [ ] Data fetching, (Senthuran)
+		- [ ] Model generation, (Kristoffer)
+		- [ ] Model merging (Theodor)
+		- [ ] results/discusion (Theodor)
+	- [ ] Prepare for final presentation 
+
 
 
 ## Meetings:
@@ -153,3 +168,7 @@ TH Tom Heine
 tA to Assign
 
 A all
+
+## Other:
+
+try to follow [PEP8 style guidelines](https://peps.python.org/pep-0008/), install i.e. autopep8 
