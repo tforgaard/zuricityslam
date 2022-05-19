@@ -57,7 +57,8 @@ def parse_pose_estimates(pose_estimate_file):
 
 def filter_pose_estimates(pose_estimates, pose_estimate_file, min_inliers):
     new_pose_estimates = {}
-    with open(pose_estimate_file + f"_logs.pkl", "rb") as log_file:
+    log_file_path = pose_estimate_file.parent / (pose_estimate_file.name + "_logs.pkl")
+    with open(log_file_path, "rb") as log_file:
         log = pickle.load(log_file)
         for img in pose_estimates.keys():
             front_str = img.split('_img')[0]
@@ -91,10 +92,10 @@ def calculate_transform(pose1, pose2, scale=1.0):
     return transform
 
 
-def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers):
+def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transformations):
     # Load the estimates for the query poses in the frame of the reference model
     pose_estimates = parse_pose_estimates(results)
-    pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers)
+    pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
     target_model = pycolmap.Reconstruction(target_sfm)
 
     max_inliers = 0
@@ -164,6 +165,8 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
             print(f"currently best query: {best_query}, scale: {scale1}, {max_inliers}/{len(pose_estimates.keys())} inliers")
         
         num_it += 1
-        #TODO return none if the best transform has too few inliers
+        
+    if max_inliers < min_inliers_transformations:
+        return None
 
     return best_transform
