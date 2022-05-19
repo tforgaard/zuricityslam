@@ -9,7 +9,7 @@ from hloc import pairs_from_retrieval, localize_sfm, visualization
 from hloc.utils import viz_3d
 import pycolmap
 
-def main(images, models, output_dir, num_loc, N, reference, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers):
+def main(images, models, output_dir, num_loc, N, reference, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transform):
     
     # Setup the paths
     """
@@ -81,20 +81,24 @@ def main(images, models, output_dir, num_loc, N, reference, target, max_it, scal
         #ransac_thresh=12,
         covisibility_clustering=False)  
     
-    best_transform = RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers)    
+    best_transform = RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transform)    
 
     # TODO: safe best transform
-    print(best_transform)
+    if best_transform is not None:
+        print(best_transform)
+        
+        reference_model = pycolmap.Reconstruction(reference_sfm)
+        target_model_transformed = pycolmap.Reconstruction(target_sfm)
+        target_model_transformed.transform(best_transform)
+
+        fig = viz_3d.init_figure()
+        viz_3d.plot_reconstruction(fig, reference_model, color='rgba(255,0,0,0.2)', name="reference")
+        viz_3d.plot_reconstruction(fig, target_model_transformed, color='rgba(0,255,0,0.2)', name="target transformed")
+
+        fig.write_html(f'{outputs}/reconstruction_{target_name}_{reference_name}.html')
     
-    reference_model = pycolmap.Reconstruction(reference_sfm)
-    target_model_transformed = pycolmap.Reconstruction(target_sfm)
-    target_model_transformed.transform(best_transform)
-
-    fig = viz_3d.init_figure()
-    viz_3d.plot_reconstruction(fig, reference_model, color='rgba(255,0,0,0.2)', name="reference")
-    viz_3d.plot_reconstruction(fig, target_model_transformed, color='rgba(0,255,0,0.2)', name="target transformed")
-
-    fig.write_html(f'{outputs}/reconstruction_{target_name}_{reference_name}.html')
+    else:
+        print("could not find a transform")
     
 
 if __name__ == "__main__":
@@ -107,7 +111,7 @@ if __name__ == "__main__":
     """
     parser.add_argument('--models', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-merge-testing-sent/models-merge-testing',
                         help='Path to the model directory, default: %(default)s')
-    parser.add_argument('--output_dir', type=Path, default='/cluster/home/skalanan/',
+    parser.add_argument('--output_dir', type=Path, default='/cluster/home/ksteinsland/',
                         help='Path to the output directory, default: %(default)s')                   
     parser.add_argument('--num_loc', type=int, default=10,
                         help='Number of retrieval pairs to generate for each query image: %(default)s')
@@ -131,8 +135,10 @@ if __name__ == "__main__":
                         help='Max iteration for RANSAC: %(default)s')
     parser.add_argument('--max_angle_error', type=int, default=5,
                         help='Max iteration for RANSAC: %(default)s')
-    parser.add_argument('--min_inliers', type=int, default=100,
-                        help='Min matching inliers needed to be part of RANSAC: %(default)s')              
+    parser.add_argument('--min_inliers_estimates', type=int, default=100,
+                        help='Min matching inliers needed to be part of RANSAC: %(default)s')
+    parser.add_argument('--min_inliers_transform', type=int, default=10,
+                        help='Min inliers needed in inner loop to be considered valid transformation: %(default)s')               
     args = parser.parse_args()
     
     # Run mapping
