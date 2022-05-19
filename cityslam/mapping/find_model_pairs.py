@@ -1,21 +1,14 @@
 import argparse
 from pathlib import Path
-from xmlrpc.client import Boolean
 import numpy as np
 import json
 
 from hloc import pairs_from_retrieval
-
-from hloc.reconstruction import import_matches, get_image_ids, create_empty_db
-from hloc.triangulation import geometric_verification
-
-from hloc.utils.parsers import parse_image_lists, parse_retrieval
-from hloc.utils.read_write_model import read_images_binary
-from hloc.utils.io import list_h5_names
+from hloc.utils.parsers import parse_retrieval
+import pycolmap
 
 from .. import logger
 
-import pycolmap
 
 def get_images_from_recon(sfm_model):
     """Get a sorted list of images in a reconstruction"""
@@ -30,11 +23,11 @@ def get_images_from_recon(sfm_model):
 
 
 def model_path_2_name(model_path:str):
-    return str(model_path).replace("/","-")
+    return str(model_path).replace("/","__")
 
 
 def model_name_2_path(model_path):
-    return Path(str(model_path).replace("-","/"))
+    return Path(str(model_path).replace("__","/"))
 
 def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=False):
 
@@ -136,6 +129,7 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
     
     # Cache score file
     with open(scores_file, "w+") as f:
+        print(f"writing to file {scores_file}")
         json.dump(scores_dict, f)
 
 
@@ -147,21 +141,11 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
     print(scores)
     print(total_scores)
 
-    # TODO we should do this for multiple pairs...
-    # find best score from total scores
-    # do same thing but switch target and reference
-    # try to use model_merger...?
-    # or do a reconstruction...?
-
-    #best_pair = np.unravel_index(scores.argmax(), scores.shape)
     # best_pair = np.unravel_index(total_scores.argmax(), total_scores.shape)
 
     # target_ind, reference_ind = best_pair
     # target = models_dict[target_ind]
     # reference = models_dict[reference_ind]
-
-    # features = list(models_dir.glob(f'feats-*.h5'))[0]
-
 
     # # output of merged models
     # merged_models = outputs / "merged"
@@ -223,9 +207,9 @@ def find_unique_pairs(merge_pairs_ref_target, merge_pairs_target_ref, output):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--models_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/theo/outputs/models',
+    parser.add_argument('--models_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-features',
                         help='Path to the models, searched recursively, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/theo/outputs/merge',
+    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-matches-testing/merge',
                         help='Output path, default: %(default)s')
     parser.add_argument('--num_loc', type=int, default=7,
                         help='Number of image pairs for retrieval, default: %(default)s')

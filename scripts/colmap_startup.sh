@@ -22,6 +22,8 @@ module load libxcb
 
 module load cuda/10.0.130
 
+module load cudnn
+
 module load metis
 
 module load libx11
