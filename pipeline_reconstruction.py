@@ -16,7 +16,17 @@ images_path = base_dir / 'datasets' / 'images'
 image_splits = base_dir / 'datasets' / 'image_splits'
 output_path = base_dir / 'outputs' / 'models-features'
 
+# Find all scenes
 scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in sorted(list(image_splits.glob("**/*_images.txt")))]
+print(f"Total scenes: {len(scene_ids)}")
+
+# Filter out the ones that are already done
+scene_ids = [scene_id for scene_id in scene_ids if next((output_path / scene_id).glob("**/images.bin"), None) is None]
+print(f"Scenes left: {len(scene_ids)}")
+
+# Filter out the ones that are not ready (waiting for matching)
+scene_ids = [scene_id for scene_id in scene_ids if next((output_path / scene_id).glob("**/database.db"), None) is not None]
+print(f"Scenes ready for recon: {len(scene_ids)}")
 
 P = min(8, len(scene_ids))  # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
 
@@ -40,6 +50,7 @@ while min(indexes) < len(scene_ids):
             sfm_dir = model_path / 'sfm_sp+sg'
             database = sfm_dir / 'database.db'
 
+            print(f"starting reconstruction for {scene_id}")
             f = tempfile.TemporaryFile()
             p = subprocess.Popen(
                 ['python3', '-m', 
