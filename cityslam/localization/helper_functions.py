@@ -31,10 +31,11 @@ def create_query_file(sfm_model, query_list, output):
     # img_name cam_model width height cam_params0, cam_params1,...
 
     if isinstance(sfm_model, (str, Path)):
+        print("ok1")
         sfm_model = pycolmap.Reconstruction(sfm_model)
 
     cams = {}
-
+    print("can load it")
     for k, cam in sfm_model.cameras.items():
         params = " ".join([f"{p:.6f}" for p in cam.params])
         cams[k] = f"{cam.model_name} {cam.width} {cam.height} {params}"
@@ -43,7 +44,6 @@ def create_query_file(sfm_model, query_list, output):
         for query in query_list:
             i = sfm_model.find_image_with_name(query)
             file.write(f"{query} {cams[i.camera_id]}\n")
-
 
 def parse_pose_estimates(pose_estimate_file):
     pose_estimates = np.genfromtxt(pose_estimate_file, delimiter=' ', dtype=None, encoding=None)
@@ -66,11 +66,11 @@ def filter_pose_estimates(pose_estimates, pose_estimate_file, min_inliers):
             if inliers >= min_inliers:
                 new_pose_estimates[img] = pose_estimates[img]
     return new_pose_estimates
+    
             
-
 def calculate_transform(pose1, pose2, scale=1.0):
     """Calculates the transformation which aligns model 1 with model 2, pose{1,2} is the pose of the same image in the two different models"""
-    
+
     # Rotation matrices which transforms from the local frame of the pose (image) to the respective world frames 1 and 2
     R_c_w1 = pycolmap.qvec_to_rotmat(pose1.qvec).T
     R_c_w2 = pycolmap.qvec_to_rotmat(pose2.qvec).T
@@ -91,20 +91,35 @@ def calculate_transform(pose1, pose2, scale=1.0):
 
     return transform
 
-
+"""
 def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transformations):
     # Load the estimates for the query poses in the frame of the reference model
     pose_estimates = parse_pose_estimates(results)
-    pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
+    #pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
     target_model = pycolmap.Reconstruction(target_sfm)
-
+    
+    
+    max_distance_error = 0.5
+    max_angle_error = 5 # in degrees
     max_inliers = 0
     best_transform = None
     best_query = ""
     best_scale = 1.0
     best_distance_error = 10000
     best_angle_error = 180
-
+    max_it = 800
+    num_it = 0
+    # Calculate standard deviation for scale distribution according to 1.96 rule
+    # this std means that 95% of all samples will lie inside the interval [0.7, 1.3]
+    scale_std = 0.3 / 1.96
+    
+    max_inliers = 0
+    best_transform = None
+    best_query = ""
+    best_scale = 1.0
+    best_distance_error = 10000
+    best_angle_error = 180
+    
     num_it = 0
     # TODO: exchange outer loop with a while loop with max iterations and random sample
     # for img_name1, pose_est1 in pose_estimates.items():
@@ -121,7 +136,8 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
         target_model_trans_tmp = pycolmap.Reconstruction(target_sfm)
 
         # Pose of the query in the original target model frame
-        pose_in_target1 = target_model.find_image_with_name(f'{target}/' + img_name1)
+        #pose_in_target1 = target_model.find_image_with_name(f'{target}/' + img_name1)
+        pose_in_target1 = target_model.find_image_with_name(f'{target.split("/")[0]}/' + img_name1)
 
         # Transform which hopefully aligns the target model with the reference model
         transform1 = calculate_transform(pose_in_target1, pose_est1, scale1)
@@ -170,3 +186,4 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
         return None
 
     return best_transform
+"""
