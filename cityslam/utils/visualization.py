@@ -148,7 +148,7 @@ def visualize_sfm_2d_video(reconstruction, image_dir, output, video_name="sfm_vi
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--reconstruction', type=Path,
-                        default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/W25QdyiFnh0/sfm_sp+sg',
+                        default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/W25QdyiFnh0',
                         help='patch to reconstruction from base directory, default: %(default)s')
     parser.add_argument('--images', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images/W25QdyiFnh0',
