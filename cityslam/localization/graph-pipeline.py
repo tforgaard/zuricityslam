@@ -3,22 +3,14 @@ import matplotlib.pyplot as plt
 import argparse
 
 from pathlib import Path
-
-from hloc import extract_features, match_features
-from hloc import pairs_from_retrieval, localize_sfm, visualization
 from hloc.utils import viz_3d
 import pycolmap
 import numpy as np
+from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base
 
 def rand_color():
         return f'rgba({np.random.randint(0,256)},{np.random.randint(42,98)},{np.random.randint(40,90)},0.2)'
 
-def model_path_2_name(model_path:str):
-    return str(model_path).replace("/","__")
-
-def model_name_2_path(model_path):
-    return Path(str(model_path).replace("__","/"))
-    # Recursively search for all models
 
 def load_transform(tf_path):
     with open(tf_path, "r") as f:
