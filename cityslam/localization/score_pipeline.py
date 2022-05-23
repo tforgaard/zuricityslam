@@ -21,7 +21,8 @@ def main(scores_file, images, models, output_dir, num_loc, N, reference, target,
     for (reference, target, score) in sorted_scores:
         if(score == 0.0): 
             continue
-
+        
+        # TODO fix this!!
         reference_name = str(reference).replace('__part0__sfm_sp+sg', '')
         target_name = str(target).replace('__part0__sfm_sp+sg', '')
 

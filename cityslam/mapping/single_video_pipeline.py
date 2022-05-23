@@ -32,8 +32,6 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
     if 'part' in video_id:
         output_model_base = output_model.parent
 
-    sfm_dir = output_model / 'sfm_sp+sg'
-
     retrieval_conf = extract_features.confs['netvlad']
     feature_conf = extract_features.confs['superpoint_aachen']
     matcher_conf = match_features.confs['superglue']
@@ -97,7 +95,7 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
     # TODO add camera mode as a param, single works for now, but maybe per folder would be better when we start merging
     model = reconstruction.main(
-        sfm_dir, images_path, sfm_pairs, feature_path, match_path, image_list=image_list, camera_mode=CameraMode.SINGLE, run=run_reconstruction, overwrite=overwrite)
+        output_model, images_path, sfm_pairs, feature_path, match_path, image_list=image_list, camera_mode=CameraMode.SINGLE, run=run_reconstruction, overwrite=overwrite)
 
     return model
 

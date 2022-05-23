@@ -26,8 +26,8 @@ def main(images, models, output_dir, num_loc, N, reference, target, max_it, scal
     outputs.mkdir(exist_ok=True, parents=True)
 
     # This is the reference and target model path
-    reference_sfm = models / reference / 'sfm_sp+sg'  
-    target_sfm = models / target / 'sfm_sp+sg'        
+    reference_sfm = models / reference
+    target_sfm = models / target
 
     # Retrieval pairs from target to reference
     loc_pairs = outputs / f'pairs-query-netvlad{num_loc}.txt'  # top-k retrieved by NetVLAD

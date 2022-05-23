@@ -5,31 +5,11 @@ import json
 
 from hloc import pairs_from_retrieval
 from hloc.utils.parsers import parse_retrieval
-import pycolmap
 
 from .. import logger
+from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base
 
-
-def get_images_from_recon(sfm_model):
-    """Get a sorted list of images in a reconstruction"""
-    # NB! This will most likely be a SUBSET of all the images in a folder like images/gTHMvU3XHBk
-
-    if isinstance(sfm_model, (str, Path)):
-        sfm_model = pycolmap.Reconstruction(sfm_model)
-    
-    img_list = [img.name for img in sfm_model.images.values()]
-    
-    return sorted(img_list)
-
-
-def model_path_2_name(model_path:str):
-    return str(model_path).replace("/","__")
-
-
-def model_name_2_path(model_path):
-    return Path(str(model_path).replace("__","/"))
-
-def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=False):
+def main(models_dir, outputs, num_loc, retrieval_interval, min_score, models_mask=None, overwrite=False, visualize=False):
 
     outputs = Path(outputs)
     if not outputs.exists():
@@ -37,7 +17,7 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
 
     # Recursively search for all models
     model_folders = [p.parent for p in Path(models_dir).glob("**/images.bin")]
- 
+
     remove_folders = []
     for model_folder in model_folders:
         
@@ -45,64 +25,77 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
         # Then we should remove the reconstruction in PATH, as this reconstruction
         # is the same as one of the ones in PATH/models/[0-9]
         if model_folder.name.isdigit():    
-            rem_folder = model_folder.relative_to(models_dir)
+            rem_folder = model_folder.relative_to(models_dir).parent.parent
             remove_folders.append(rem_folder)
 
     # Make the model_folder paths relative to models_dir and remove redundant folders
     model_folders = [model_folder.relative_to(models_dir) for model_folder in model_folders if model_folder not in remove_folders]
 
+    print(f"Scenes ready for pairing: {len(model_folders)}")
+
+    # Optionally only include specific models
+    if models_mask is not None:
+        if isinstance(models_mask, str):
+            models_mask = [models_mask]
+        model_folders = [model_folder for model_folder in model_folders for model_mask in models_mask if model_mask in model_folder.parts]
+
     K = len(model_folders)
     logger.info(f"found {K} models")
-    
+
     scores = np.zeros((K, K))
 
     models_dict = {m : model_m for m, model_m in enumerate(model_folders)}
 
-    global_descriptors = next(models_dir.glob("global-feats*.h5"))
+    # global_descriptors = next(models_dir.glob("global-feats*.h5"))
 
     for n_ref, model_ref in enumerate(model_folders):
 
         img_names_ref = get_images_from_recon(Path(models_dir) / model_ref)
-        #img_names_ref = sorted([image.name for image in read_images_binary(model_ref / "sfm_sp+sg" / 'images.bin').values()])
+        descriptor_ref = next(get_model_base(models_dir, model_ref).glob("global-feats*.h5"))
     
         for n_target, model_target in enumerate(model_folders):
             if n_ref != n_target:
                 
-                img_names_target = get_images_from_recon(Path(models_dir) / model_target)
-                # db_names_target = sorted([image.name for image in read_images_binary(model_target / "sfm_sp+sg" / 'images.bin').values()])
-                # db_names_n = list_h5_names(descriptor_n)
+                # TODO: make this a file in a folder structure instead...
+                # sfm_pairs = outputs / f'pairs-merge_{model_path_2_name(models_dict[n_target])}_{model_path_2_name(models_dict[n_ref])}_{num_loc}.txt'
+                sfm_pairs = outputs / models_dict[n_target] / models_dict[n_ref] / f'pairs-merge-{num_loc}.txt'
+                sfm_pairs.parent.mkdir(exist_ok=True, parents=True)
 
+                img_names_target = get_images_from_recon(Path(models_dir) / model_target)
+                descriptor_target = next(get_model_base(models_dir, model_target).glob("global-feats*.h5"))
                 query = img_names_target[::retrieval_interval]
                 
-                # TODO: make this a file in a folder structure instead...
-                sfm_pairs = outputs / f'pairs-merge_{model_path_2_name(models_dict[n_target])}_{model_path_2_name(models_dict[n_ref])}_{num_loc}.txt'
+                if not sfm_pairs.exists() or overwrite:
+                    
+                    pairs = []
+                    # Check to see if models are sequential partitions
+                    if get_model_base(models_dir, model_target) == get_model_base(models_dir, model_ref):
+                        pairs = check_for_common_images(img_names_target, img_names_ref, model_target, model_ref)
 
+                    # Mask out already matched pairs
+                    match_mask = np.zeros((len(query), len(img_names_ref)),dtype=bool)
+                    for (p1, p2) in pairs:
+                        match_mask[img_names_target.index(p1), img_names_ref.index(p2)] = True
 
-                # Check to see if models are sequential partitions
-                video_id_target =  model_target.parts[0]
-                video_id_ref =  model_ref.parts[0]
-                pairs = check_for_common_images(query, img_names_ref, video_id_target, video_id_ref)
+                    # Find retrieval pairs
+                    pairs_from_retrieval.main(descriptor_target, sfm_pairs,
+                                            num_matched=num_loc, query_list=query, db_model=Path(models_dir) / model_ref, db_descriptors=descriptor_ref, min_score=min_score, match_mask=match_mask)
 
-                # Mask out already matched pairs
-                # already_matched_ref_imgs = [ref_img for (_, ref_img) in pairs]
-                # db_list = [img_name_ref for img_name_ref in img_names_ref if img_name_ref not in already_matched_ref_imgs]
-                match_mask = np.zeros((len(query), len(img_names_ref)),dtype=bool)
-                for (p1, p2) in pairs:
-                    match_mask[img_names_target.index(p1), img_names_ref.index(p2)] = True
+                    # Add common image pairs
+                    retrieval = parse_retrieval(sfm_pairs)
 
-                pairs_from_retrieval.main(global_descriptors, sfm_pairs,
-                                          num_matched=num_loc, query_list=query, db_model=Path(models_dir) / model_ref, min_score=min_score, match_mask=match_mask)
+                    for key, val in retrieval.items():
+                        for match in val:
+                            if (key, match) not in pairs:
+                                pairs.append((key, match))
 
-                retrieval = parse_retrieval(sfm_pairs)
+                    with open(sfm_pairs, 'w') as f:
+                        f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
+                
+                else:
+                    logger.info("pairs already found, skipping retrieval...")
 
-                for key, val in retrieval.items():
-                    for match in val:
-                        if (key, match) not in pairs:
-                            pairs.append((key, match))
-
-                with open(sfm_pairs, 'w') as f:
-                    f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
-
+                    retrieval = parse_retrieval(sfm_pairs)
 
                 # TODO make a better scoring alg, maybe sum up all the scores? and drop min_score
                 scores[n_target, n_ref] = len(retrieval) / len(query)
@@ -141,75 +134,40 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, overwrite=
     print(scores)
     print(total_scores)
 
-    # best_pair = np.unravel_index(total_scores.argmax(), total_scores.shape)
-
-    # target_ind, reference_ind = best_pair
-    # target = models_dict[target_ind]
-    # reference = models_dict[reference_ind]
-
-    # # output of merged models
-    # merged_models = outputs / "merged"
-    # if not merged_models.exists():
-    #     merged_models.mkdir(mode=0o777, parents=True, exist_ok=True)
-    
-    # # pair files
-    # merge_pairs = merged_models / "merge_pairs.txt"
-    # merge_pairs_ref_target = list(outputs.glob(f"pairs-merge_{reference}_{target}*.txt"))[0]
-    # merge_pairs_target_ref = list(outputs.glob(f"pairs-merge_{target}_{reference}*.txt"))[0]
-    
-    # find_unique_pairs(merge_pairs_ref_target, merge_pairs_target_ref, merge_pairs)
-
-    # merging_matches_output = outputs / f"matches_{target}_{reference}.h5"
+    if visualize:
+        import matplotlib.pyplot as plt
+        plt.imshow(scores, interpolation='none')
+        plt.colorbar()
+        plt.savefig(outputs / "model_match_scores.png")
 
 
-def check_for_common_images(img_names_target, img_names_ref, video_id_target, video_id_ref):
+def check_for_common_images(img_names_target, img_names_ref, target, reference):
 
     pairs = []
 
-    if "part" in video_id_target and "part" in video_id_ref:
-        seq_n_target = int(video_id_target.split("part")[-1])
-        seq_n_ref = int(video_id_ref.split("part")[-1])
+    seq_n_target = int(target.parts[1].split("part")[-1])
+    seq_n_ref = int(reference.parts[1].split("part")[-1])
 
-        if seq_n_target + 1 == seq_n_ref or seq_n_target - 1 == seq_n_ref:
-                        # look for same images in the two reconstructions..
-            img_stems_target = set([img_name_target.split("/")[-1] for img_name_target in img_names_target])
-            img_stems_ref = set([img_name_ref.split("/")[-1] for img_name_ref in img_names_ref])
+    if seq_n_target + 1 == seq_n_ref or seq_n_target - 1 == seq_n_ref:
+                    # look for same images in the two reconstructions..
+        img_stems_target = set([img_name_target.split("/")[-1] for img_name_target in img_names_target])
+        img_stems_ref = set([img_name_ref.split("/")[-1] for img_name_ref in img_names_ref])
 
-            img_stems_common = img_stems_target.intersection(img_stems_ref)
+        img_stems_common = img_stems_target.intersection(img_stems_ref)
 
+        for img_stem_common in img_stems_common:
 
-            for img_stem_common in img_stems_common:
-
-                pairs.append((  "/".join([video_id_target, img_stem_common]), 
-                                "/".join([video_id_ref, img_stem_common])))
+            pairs.append((  "/".join([target.parts[0], img_stem_common]), 
+                            "/".join([reference.parts[0], img_stem_common])))
 
     return pairs
-
-def find_unique_pairs(merge_pairs_ref_target, merge_pairs_target_ref, output):
-    retrieval_ref_target = parse_retrieval(merge_pairs_ref_target)
-    retrieval_target_ref = parse_retrieval(merge_pairs_target_ref)
-
-    pairs_set = set()
-    
-    for key, val in retrieval_ref_target.items():
-        for match in val:
-            pairs_set.add(frozenset((key, match)))
-
-    for key, val in retrieval_target_ref.items():
-        for match in val:
-            pairs_set.add(frozenset((key, match)))
-    
-    pairs = [tuple(pair) for pair in pairs_set]
-
-    with open(output, 'w') as f:
-        f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--models_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-features',
                         help='Path to the models, searched recursively, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-matches-testing/merge',
+    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/test/merge-obs',
                         help='Output path, default: %(default)s')
     parser.add_argument('--num_loc', type=int, default=7,
                         help='Number of image pairs for retrieval, default: %(default)s')
@@ -217,7 +175,10 @@ if __name__ == "__main__":
                         help='How often to trigger retrieval: %(default)s')
     parser.add_argument('--min_score', type=float, default=0.15,
                         help='Minimum score for retrieval: %(default)s')
+    parser.add_argument('--models_mask', nargs="+", default='2obsKLoZQdU',
+                        help='Only include given models: %(default)s')
     parser.add_argument('--overwrite', action="store_true")
+    parser.add_argument('--visualize', action="store_true")
     args = parser.parse_args()
 
     main(**args.__dict__)
