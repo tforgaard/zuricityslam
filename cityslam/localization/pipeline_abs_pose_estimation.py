@@ -12,22 +12,7 @@ from hloc.utils import viz_3d
 import pycolmap
 
 def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transformations):
-    max_distance_error = 0.5
-    max_angle_error = 5 # in degrees
-    max_inliers = 0
-    best_transform = None
-    best_query = ""
-    best_scale = 1.0
-    best_distance_error = 10000
-    best_angle_error = 180
-    max_it = 800
-    num_it = 0
-
-    scale_std = 0.3 / 1.96
-    min_inliers_estimates=100
-    min_inliers_transformations=10
-
-
+ 
     # TODO: load the pkl file to get number of inliers and ratio
     # We should trust pose estimates with a high number of inliers more than other ones...
 
