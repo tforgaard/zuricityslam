@@ -5,7 +5,11 @@ from cityslam.localization import pipeline_abs_pose_estimation
 from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base
 from cityslam import logger
 
-def main(scores_file, models, output_dir, num_loc, N, max_it, scale_std, min_model_score, max_distance_error, max_angle_error, only_sequential=False, overwrite=False,visualize=False):
+def main(scores_file, models, output_dir, num_loc, N, max_it, scale_std, min_model_score, max_distance_error, max_angle_error, models_mask=None, only_sequential=False, overwrite=False,visualize=False):
+
+    if models_mask is not None:
+        if isinstance(models_mask, str):
+            models_mask = [models_mask]
 
     with open(scores_file) as f:
         score_dict = json.load(f)
@@ -25,6 +29,12 @@ def main(scores_file, models, output_dir, num_loc, N, max_it, scale_std, min_mod
 
         reference = model_name_2_path(reference_name)
         target = model_name_2_path(target_name)
+
+        for model_mask in models_mask:
+            if model_mask not in reference.parts:
+                continue
+            if model_mask not in target.parts:
+                continue
 
         if only_sequential:
             seq_n_target = int(target.parts[1].split("part")[-1])
@@ -55,6 +65,8 @@ if __name__ == "__main__":
                         help='Path to the model directory, default: %(default)s')
     parser.add_argument('--output_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-pairs',
                         help='Path to the output directory, default: %(default)s')
+    parser.add_argument('--models_mask', nargs="+", default=None,
+                        help='Only include given models: %(default)s')
     parser.add_argument('--num_loc', type=int, default=10,
                         help='Number of retrieval pairs to generate for each query image: %(default)s')
     parser.add_argument('--N', type=int, default=5,
