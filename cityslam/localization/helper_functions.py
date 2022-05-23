@@ -1,28 +1,9 @@
 from pathlib import Path
 import numpy as np
 
-from hloc import extract_features, match_features
-from hloc import pairs_from_retrieval, localize_sfm, visualization
-from hloc.utils import viz_3d
 import pycolmap
 import pickle
 
-def model_path_2_name(model_path:str):
-    return str(model_path).replace("/","__")
-
-def model_name_2_path(model_path):
-    return Path(str(model_path).replace("__","/"))
-    
-def get_images_from_recon(sfm_model):
-    """Get a sorted list of images in a reconstruction"""
-    # NB! This will most likely be a SUBSET of all the images in a folder like images/gTHMvU3XHBk
-
-    if isinstance(sfm_model, (str, Path)):
-        sfm_model = pycolmap.Reconstruction(sfm_model)
-    
-    img_list = [img.name for img in sfm_model.images.values()]
-    
-    return sorted(img_list)
 
 def create_query_file(sfm_model, query_list, output):
     """Create a query file used for localization"""
@@ -31,11 +12,9 @@ def create_query_file(sfm_model, query_list, output):
     # img_name cam_model width height cam_params0, cam_params1,...
 
     if isinstance(sfm_model, (str, Path)):
-        print("ok1")
         sfm_model = pycolmap.Reconstruction(sfm_model)
 
     cams = {}
-    print("can load it")
     for k, cam in sfm_model.cameras.items():
         params = " ".join([f"{p:.6f}" for p in cam.params])
         cams[k] = f"{cam.model_name} {cam.width} {cam.height} {params}"
@@ -62,7 +41,11 @@ def filter_pose_estimates(pose_estimates, pose_estimate_file, min_inliers):
         log = pickle.load(log_file)
         for img in pose_estimates.keys():
             front_str = img.split('_img')[0]
-            inliers = len(log['loc'][front_str + '/' + img]['PnP_ret']['inliers'])
+            try:
+                inliers = len(log['loc'][front_str + '/' + img]['PnP_ret']['inliers'])
+            except KeyError as e:
+                print("could not find inliers")
+                inliers = 0
             if inliers >= min_inliers:
                 new_pose_estimates[img] = pose_estimates[img]
     return new_pose_estimates

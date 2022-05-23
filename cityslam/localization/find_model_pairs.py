@@ -56,7 +56,6 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, models_mas
         for n_target, model_target in enumerate(model_folders):
             if n_ref != n_target:
                 
-                # TODO: make this a file in a folder structure instead...
                 # sfm_pairs = outputs / f'pairs-merge_{model_path_2_name(models_dict[n_target])}_{model_path_2_name(models_dict[n_ref])}_{num_loc}.txt'
                 sfm_pairs = outputs / models_dict[n_target] / models_dict[n_ref] / f'pairs-merge-{num_loc}.txt'
                 sfm_pairs.parent.mkdir(exist_ok=True, parents=True)
@@ -75,7 +74,8 @@ def main(models_dir, outputs, num_loc, retrieval_interval, min_score, models_mas
                     # Mask out already matched pairs
                     match_mask = np.zeros((len(query), len(img_names_ref)),dtype=bool)
                     for (p1, p2) in pairs:
-                        match_mask[img_names_target.index(p1), img_names_ref.index(p2)] = True
+                        if p1 in query:
+                            match_mask[query.index(p1), img_names_ref.index(p2)] = True
 
                     # Find retrieval pairs
                     pairs_from_retrieval.main(descriptor_target, sfm_pairs,
@@ -160,14 +160,15 @@ def check_for_common_images(img_names_target, img_names_ref, target, reference):
             pairs.append((  "/".join([target.parts[0], img_stem_common]), 
                             "/".join([reference.parts[0], img_stem_common])))
 
+        logger.info(f"found {len(pairs)} pairs from common images")
     return pairs
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--models_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-features',
+    parser.add_argument('--models_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models',
                         help='Path to the models, searched recursively, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/test/merge-obs',
+    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-pairs',
                         help='Output path, default: %(default)s')
     parser.add_argument('--num_loc', type=int, default=7,
                         help='Number of image pairs for retrieval, default: %(default)s')
@@ -175,7 +176,7 @@ if __name__ == "__main__":
                         help='How often to trigger retrieval: %(default)s')
     parser.add_argument('--min_score', type=float, default=0.15,
                         help='Minimum score for retrieval: %(default)s')
-    parser.add_argument('--models_mask', nargs="+", default='2obsKLoZQdU',
+    parser.add_argument('--models_mask', nargs="+", default=None,
                         help='Only include given models: %(default)s')
     parser.add_argument('--overwrite', action="store_true")
     parser.add_argument('--visualize', action="store_true")

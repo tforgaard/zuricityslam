@@ -1,15 +1,20 @@
 #!/usr/bin/env python
 
 from pathlib import Path
-import os.path
-from os.path import exists
-from helper_functions import *
 import argparse
 import numpy as np
-from hloc import extract_features, match_features
-from hloc import pairs_from_retrieval, localize_sfm, visualization
+
+from hloc import  match_features
+from hloc import pairs_from_retrieval, localize_sfm
 from hloc.utils import viz_3d
+from hloc.utils.parsers import parse_retrieval
+
+from cityslam.localization.helper_functions import *
+from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base
+from cityslam.utils.features import create_joint_feature_file
 import pycolmap
+
+from cityslam import logger
 
 def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transformations):
  
@@ -21,8 +26,16 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
     pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
     target_model = pycolmap.Reconstruction(target_sfm)
 
+    best_transform = None
+    best_query = ""
+    best_scale = 1.0
+    best_distance_error = 10000
+    best_angle_error = 180
+    max_inliers = 0
+
     # TODO: exchange outer loop with a while loop with max iterations and random sample
     # for img_name1, pose_est1 in pose_estimates.items():
+    num_it = 0
     while num_it < max_it:
         ind = np.random.randint(len(pose_estimates.keys()))
         img_name1 = list(pose_estimates.keys())[ind]
@@ -36,7 +49,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
         target_model_trans_tmp = pycolmap.Reconstruction(target_sfm)
 
         # Pose of the query in the original target model frame
-        pose_in_target1 = target_model.find_image_with_name(f'{target.split("/")[0]}/' + img_name1)
+        pose_in_target1 = target_model.find_image_with_name(f'{str(target).split("/")[0]}/' + img_name1)
 
         # Transform which hopefully aligns the target model with the reference model
         transform1 = calculate_transform(pose_in_target1, pose_est1, scale1)
@@ -49,7 +62,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
         # 'Inner loop' comparing the transformation found against the other pose estimates
         for img_name2, pose_est2 in pose_estimates.items():
 
-            pose_in_target2 = target_model_trans_tmp.find_image_with_name(f'{target.split("/")[0]}/' + img_name2)
+            pose_in_target2 = target_model_trans_tmp.find_image_with_name(f'{str(target).split("/")[0]}/' + img_name2)
             
             # This transform should be equal to a rotation matrix like identity 
             # and zero translation if the pose_est1 and pose_est2 agree 
@@ -77,7 +90,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
             best_scale = scale1
             best_distance_error = np.mean(inliers_d)
             best_angle_error = np.mean(inliers_ang)
-            print(f"currently best query: {best_query}, scale: {scale1}, {max_inliers}/{len(pose_estimates.keys())} inliers")
+            logger.info(f"currently best query: {best_query}, scale: {scale1}, {max_inliers}/{len(pose_estimates.keys())} inliers")
         
         num_it += 1
 
@@ -86,7 +99,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
     
     return best_transform
 
-def main(images, models, output_dir, num_loc, N, reference, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transform):
+def main(models, output_dir, num_loc, N, reference, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates=50, min_inliers_transform=5, min_retrieval_score=0.15, overwrite=False, visualize=False):
     """
     # Setup the paths
     target_path = model_name_2_path(target)
@@ -95,7 +108,10 @@ def main(images, models, output_dir, num_loc, N, reference, target, max_it, scal
     target_name = model_path_2_name(target)
     reference_name = model_path_2_name(reference)
     """
-    outputs = output_dir / f'merge_{target.replace("/", "_")}_{reference.replace("/", "_")}'
+
+    target = Path(target)
+    reference = Path(reference)
+    outputs = output_dir / target / reference # f'merge_{model_path_2_name(target)}__{model_path_2_name(reference)}'
     outputs.mkdir(exist_ok=True, parents=True)
 
     # This is the reference and target model path
@@ -103,46 +119,63 @@ def main(images, models, output_dir, num_loc, N, reference, target, max_it, scal
     target_sfm = models / target
 
     # Retrieval pairs from target to reference
-    loc_pairs = outputs / f'pairs-query-netvlad{num_loc}.txt'  # top-k retrieved by NetVLAD
+
+    loc_pairs = next(outputs.glob("pairs*.txt"),None)
+    if loc_pairs is None:
+        loc_pairs = outputs / f'pairs-merge-{num_loc}.txt'  # top-k retrieved by NetVLAD
 
     # Results file containing the estimated poses of the queries
     results = outputs / f'Merge_hloc_superpoint+superglue_netvlad{num_loc}.txt'
 
     # Configurations
-    retrieval_conf = extract_features.confs['netvlad']
-    feature_conf = extract_features.confs['superpoint_aachen']
     matcher_conf = match_features.confs['superglue']
 
     # Path to local features
-    #features = extract_features.main(feature_conf, images, outputs)
-    features = models / 'feats-superpoint-n4096-r1024.h5'
-    
+    # features = next(models.glob("feats-*.h5"),None)
+    features = create_joint_feature_file(outputs, models, [target.parts[0], reference.parts[0]], type='features')
+
     # Path to the global descriptors
-    #global_descriptors = extract_features.main(retrieval_conf, images, outputs)
-    global_descriptors = models / 'global-feats-netvlad.h5'
-    
+    # global_descriptors = next(models.glob("feats-*.h5"),None)
+
+    # Paths to local decriptors and features
+    descriptor_ref = next(get_model_base(models, reference).glob("global-feats*.h5"))
+    descriptor_target = next(get_model_base(models, target).glob("global-feats*.h5"))
+
+    features_target = next(get_model_base(models, target).glob("feats*.h5"))
+    features_ref = next(get_model_base(models, reference).glob("feats*.h5"))
+
+        
     # Get images from target model
     query_images = get_images_from_recon(target_sfm)
 
-    # Use a subset of the images from the target model as queries
-    query_list = query_images[::N]
-    
-    # Create a text file containing query images names and camera parameters
-    queries_file = outputs / f'{target.replace("/", "_")}_queries_with_intrinsics.txt'
-    create_query_file(target_sfm, query_list, queries_file)
     
     # Do retrieval from target-queries to reference 
-    if (not exists(loc_pairs)):
-        pairs_from_retrieval.main(
-            global_descriptors, loc_pairs, num_loc,
-            query_list=query_list, db_model=reference_sfm, min_score=0.15)
-    
+    if not loc_pairs.exists() or overwrite:
+        # Use a subset of the images from the target model as queries
+        query_list = query_images[::N]
+        
+        pairs_from_retrieval.main(descriptor_target, loc_pairs,
+                                            num_matched=num_loc, 
+                                            query_list=query_list, 
+                                            db_model=reference_sfm, 
+                                            db_descriptors=descriptor_ref, 
+                                            min_score=min_retrieval_score)
+    else:
+        logger.info("skipping retrieval, already found")
+        retrieval = parse_retrieval(loc_pairs)
+        query_list = list(retrieval.keys())
+
+
+    # Create a text file containing query images names and camera parameters
+    queries_file = outputs / f'{model_path_2_name(target)}_queries_with_intrinsics.txt'
+    create_query_file(target_sfm, query_list, queries_file)
+
     # Output path of matches
-    matches = Path(models, f'{features.stem}_{matcher_conf["output"]}_{loc_pairs.stem}.h5')
+    matches = outputs / f'{features_target.stem}_{matcher_conf["output"]}_{loc_pairs.stem}.h5'
 
     # Do matching for the pairs
     loc_matches = match_features.main(
-        matcher_conf, loc_pairs, features=features, matches=matches, overwrite=True)
+        matcher_conf, loc_pairs, features=features_target, features_ref=features_ref, matches=matches, overwrite=overwrite)
 
     # Do localization of queries
     localize_sfm.main(
@@ -159,18 +192,19 @@ def main(images, models, output_dir, num_loc, N, reference, target, max_it, scal
     
     if best_transform is not None:
         transform = best_transform.matrix
-        txt = outputs / f'trans__{target.replace("/", "__")}__{reference.replace("/", "__")}.txt'
+        txt = outputs / f'trans__{model_path_2_name(target)}__{model_path_2_name(reference)}.txt'
         np.savetxt(txt, transform[:-1, :], delimiter=',')
         
         reference_model = pycolmap.Reconstruction(reference_sfm)
         target_model_transformed = pycolmap.Reconstruction(target_sfm)
         target_model_transformed.transform(best_transform)
 
-        fig = viz_3d.init_figure()
-        viz_3d.plot_reconstruction(fig, reference_model, color='rgba(255,0,0,0.2)', name="reference")
-        viz_3d.plot_reconstruction(fig, target_model_transformed, color='rgba(0,255,0,0.2)', name="target transformed")
+        if visualize:
+            fig = viz_3d.init_figure()
+            viz_3d.plot_reconstruction(fig, reference_model, color='rgba(255,0,0,0.2)', name="reference")
+            viz_3d.plot_reconstruction(fig, target_model_transformed, color='rgba(0,255,0,0.2)', name="target transformed")
 
-        fig.write_html(f'{outputs}/reconstruction_{target.replace("/", "_")}_{reference.replace("/", "_")}.html')
+            fig.write_html(f'{outputs}/reconstruction__{model_path_2_name(target)}__{model_path_2_name(reference)}.html')
     
     else:
         print("could not find a transform")
@@ -178,20 +212,16 @@ def main(images, models, output_dir, num_loc, N, reference, target, max_it, scal
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--images', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/images',
-                        help='Path to the dataset, default: %(default)s')
-    parser.add_argument('--models', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-features',
+    parser.add_argument('--models', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models',
                         help='Path to the model directory, default: %(default)s')
-    parser.add_argument('--output_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/test/merge',
+    parser.add_argument('--output_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-pairs',
                         help='Path to the output directory, default: %(default)s')                   
     parser.add_argument('--num_loc', type=int, default=4,
                         help='Number of retrieval pairs to generate for each query image: %(default)s')
     parser.add_argument('--N', type=int, default=10,
                         help='Use every Nth image from the images in the target reconstruction as query image: %(default)s')              
-    parser.add_argument('--reference', type=str, default='73IVzh0R-Lo/part1',
-                        help='video id for reference model, %(default)s')
-    parser.add_argument('--target', type=str, default='73IVzh0R-Lo/part0',
-                        help='video id for target model, %(default)s')
+    parser.add_argument('--reference', type=str, help='video id for reference model')
+    parser.add_argument('--target', type=str, help='video id for target model')
     parser.add_argument('--max_it', type=int, default=400,
                         help='Max iteration for RANSAC: %(default)s')
     parser.add_argument('--scale_std', type=float, default=0.15306122448979592,
@@ -203,7 +233,9 @@ if __name__ == "__main__":
     parser.add_argument('--min_inliers_estimates', type=int, default=100,
                         help='Min matching inliers needed to be part of RANSAC: %(default)s')
     parser.add_argument('--min_inliers_transform', type=int, default=10,
-                        help='Min inliers needed in inner loop to be considered valid transformation: %(default)s')               
+                        help='Min inliers needed in inner loop to be considered valid transformation: %(default)s')   
+    parser.add_argument('--overwrite', action="store_true")
+    parser.add_argument('--visualize', action="store_true")            
     args = parser.parse_args()
     
     # Run mapping

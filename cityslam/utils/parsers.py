@@ -14,11 +14,14 @@ def get_images_from_recon(sfm_model):
     return sorted(img_list)
 
 
-def model_path_2_name(model_path:str):
+def model_path_2_name(model_path):
     return str(model_path).replace("/","__")
 
-def model_name_2_path(model_path):
-    return Path(str(model_path).replace("__","/"))
+def model_name_2_path(model_name):
+    # backwards comp
+    model_name = str(model_name).replace('__sfm_sp+sg', '')
+    
+    return Path(str(model_name).replace("__","/"))
 
 def get_model_base(model_folder, relative_model_path):
     return Path(model_folder) / Path(relative_model_path).parts[0]

@@ -12,7 +12,7 @@ from hloc import extract_features, match_features, reconstruction, visualization
 from hloc.utils import viz
 from hloc.utils.parsers import parse_image_list
 from hloc import pairs_from_sequence
-from . import update_features
+from cityslam.utils.features import update_features
 
 # from hloc.utils.io import list_h5_names
 # def features_exists(feature_path, images):
@@ -53,7 +53,7 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
             # Copy global features and from our file to the 'joint' feature files
             # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-            update_features.main(retrieval_path, outputs, overwrite)
+            # update_features(retrieval_path, outputs, overwrite)
 
         if pairing == 'sequential':
             sfm_pairs = output_model / f'pairs-sequential{window_size}.txt'
@@ -82,7 +82,7 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
     # Copy local and global features and from our file to the 'joint' feature files
     # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-    update_features.main(feature_path, outputs, overwrite)
+    # update_features(feature_path, outputs, overwrite)
 
     # output file for matches
     matches = Path(output_model, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
