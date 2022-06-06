@@ -47,15 +47,14 @@ while min(indexes) < len(scene_ids):
                 processes[i] = None
                 continue
 
-            sfm_dir = model_path / 'sfm_sp+sg'
-            database = sfm_dir / 'database.db'
+            database = model_path / 'database.db'
 
             print(f"starting reconstruction for {scene_id}")
             f = tempfile.TemporaryFile()
             p = subprocess.Popen(
                 ['python3', '-m', 
                 'cityslam.mapping.reconstruction_subroutine', 
-                '--sfm_dir', str(sfm_dir), 
+                '--sfm_dir', str(model_path), 
                 '--database', str(database), 
                 '--images_path', str(images_path), 
                 '--lock_path', str(lock_path)], stdout=f)

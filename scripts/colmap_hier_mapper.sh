@@ -9,7 +9,7 @@ BASE=/cluster/project/infk/courses/252-0579-00L/group07
 PAIRING=sequential+retrieval
 VIDEO=W25QdyiFnh0
 
-MODEL_DIR=${BASE}/outputs/${VIDEO}_${PAIRING}/sfm_sp+sg
+MODEL_DIR=${BASE}/outputs/${VIDEO}_${PAIRING}
 IMAGES=${BASE}/datasets/images/${VIDEO}
 OUTPUT=${MODEL_DIR}/colmap_hier
 
