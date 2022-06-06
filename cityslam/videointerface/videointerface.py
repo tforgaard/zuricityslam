@@ -13,7 +13,6 @@ from pathlib import Path
 import pickle
 
 import numpy as np
-import what3words as w3w
 
 from .. import logger
 
@@ -22,14 +21,13 @@ from apiclient.discovery import build
 from apiclient.errors import HttpError
 
 youTubeApiKey = "AIzaSyDZ7EFO3tvl5HKMj4bgQBzvBhbVhDPiCx8"  # Input your youTubeApiKey
-w3wApiKey = "AWXNVR24"  # Input your w3wApiKey
 
 # Queries to run through youtube
 youtube_queries = ["City Walk", "walk",
                    "Tour", "walking tour", "bike", "driving"]
 
 
-def main(queries_path, input_type, query, num_vids, max_results=100, overwrite=False, verbose=True):
+def main(queries_path, cityname, query, num_vids, max_results=100, overwrite=False, verbose=True):
 
     if not verbose:
         logger.setLevel('ERROR')
@@ -45,19 +43,7 @@ def main(queries_path, input_type, query, num_vids, max_results=100, overwrite=F
     }
 
     # get query from user
-    # use query to get coordinates
-    if input_type == "coordinates":
-        location_co = query
-    elif input_type == "w3w":
-        # get coordinates from w3w
-        location_co = w3w_to_CO('///'+query)
-    elif input_type == "cityname":
-        # get coordinates from google maps
-        location_co = cityname_to_CO(query)
-    else:
-        logger.error("input type not recognized")
-        location_co = "47.371667, 8.542222"
-
+    location_co = cityname_to_CO(query)
     logger.info(f"location coords: <{location_co}>")
 
     queries = {}
@@ -76,6 +62,7 @@ def main(queries_path, input_type, query, num_vids, max_results=100, overwrite=F
     else:
         # run queries
         for youtube_query in youtube_queries:
+            youtube_query = cityname + " " + youtube_query
             yt_interface(youtubeAPI, youtube_query,
                          results, location_co, max_results)
 
@@ -94,18 +81,8 @@ def main(queries_path, input_type, query, num_vids, max_results=100, overwrite=F
 
 
 # //METHODES-GEOPOS-------------------------------------------------------////
-def w3w_to_CO(query):
-    logger.info("w3w_to_CO from: " + str(query))
-    geocoder = w3w.Geocoder(w3wApiKey)
-    result = geocoder.convert_to_coordinates(query)
-    #print("w3w_to_CO to: " + str(result))
-    out = str(result['coordinates']['lat']) + ", " + \
-        str(result['coordinates']['lng'])
-    logger.info("w3w_to_CO to: " + str(out))
-    return out
-
-
 def cityname_to_CO(cityname):
+    #TODO make general
     logger.info("not ready yet, use Zurich")
     return "47.371667, 8.542222"
 
@@ -169,11 +146,11 @@ def print_results(results):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--queries_path', type=Path,
-                        default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/queries',
+                        #default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/queries',
+                        default='/cluster/home/ksteinsland/zuricityslam/base/kriss/datasets/queries',
                         help='folder for video queries')
-    parser.add_argument('--input_type', type=str, default='coordinates',  # 'w3w',
-                        help='inputtype of the query: %(default)s',
-                        choices=['coordinates', 'w3w', 'cityname'])
+    parser.add_argument('--cityname', type=str, default="Zürich",
+                        help='input city name: %(default)s')
     parser.add_argument('--query', type=str, default='47.371667, 8.542222',  # 'trailer.sung.believer',
                         help='search query to get video')
     parser.add_argument('--num_vids', type=int, default=5,
