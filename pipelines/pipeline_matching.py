@@ -13,7 +13,7 @@ os.umask(0o002)
 base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 images_path = base_dir / 'datasets' / 'images'
-image_splits = base_dir / 'datasets' / 'image_splits'
+image_splits = base_dir / 'datasets' / 'image_splits_new2'
 output_path = base_dir / 'outputs' / 'models-features'
 
 # Find all scenes
