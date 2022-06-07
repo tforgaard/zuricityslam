@@ -12,7 +12,7 @@ from hloc import extract_features, match_features, reconstruction, visualization
 from hloc.utils import viz
 from hloc.utils.parsers import parse_image_list
 from hloc import pairs_from_sequence
-from . import update_features
+from cityslam.utils.features import update_features
 
 # from hloc.utils.io import list_h5_names
 # def features_exists(feature_path, images):
@@ -31,8 +31,6 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
     output_model = outputs / video_id
     if 'part' in video_id:
         output_model_base = output_model.parent
-
-    sfm_dir = output_model / 'sfm_sp+sg'
 
     retrieval_conf = extract_features.confs['netvlad']
     feature_conf = extract_features.confs['superpoint_aachen']
@@ -55,7 +53,7 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
             # Copy global features and from our file to the 'joint' feature files
             # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-            update_features.main(retrieval_path, outputs, overwrite)
+            # update_features(retrieval_path, outputs, overwrite)
 
         if pairing == 'sequential':
             sfm_pairs = output_model / f'pairs-sequential{window_size}.txt'
@@ -84,7 +82,7 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
     # Copy local and global features and from our file to the 'joint' feature files
     # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-    update_features.main(feature_path, outputs, overwrite)
+    # update_features(feature_path, outputs, overwrite)
 
     # output file for matches
     matches = Path(output_model, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
@@ -97,7 +95,7 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
     # TODO add camera mode as a param, single works for now, but maybe per folder would be better when we start merging
     model = reconstruction.main(
-        sfm_dir, images_path, sfm_pairs, feature_path, match_path, image_list=image_list, camera_mode=CameraMode.SINGLE, run=run_reconstruction, overwrite=overwrite)
+        output_model, images_path, sfm_pairs, feature_path, match_path, image_list=image_list, camera_mode=CameraMode.SINGLE, run=run_reconstruction, overwrite=overwrite)
 
     return model
 

@@ -5,7 +5,7 @@ from pathlib import Path
 import argparse
 
 from hloc import extract_features
-from . import update_features
+from cityslam.utils.features import update_features
 
 
 def main(images_path, outputs, video_id, overwrite=False):
@@ -43,14 +43,14 @@ def main(images_path, outputs, video_id, overwrite=False):
 
     # Copy global features from our file to the 'joint' feature files
     # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-    update_features.main(retrieval_path, outputs, overwrite=overwrite)
+    # update_features(retrieval_path, outputs, overwrite=overwrite)
 
     # ## Extract local features
     features_path = extract_features.main(feature_conf, images_path, output_model, image_list=image_list, overwrite=overwrite)
 
     # Copy local features from our file to the 'joint' feature files
     # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-    update_features.main(features_path, outputs, overwrite=overwrite)
+    # update_features(features_path, outputs, overwrite=overwrite)
 
 
 if __name__ == "__main__":
