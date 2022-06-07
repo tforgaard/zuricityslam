@@ -12,15 +12,6 @@ from hloc import extract_features, match_features, reconstruction, visualization
 from hloc.utils import viz
 from hloc.utils.parsers import parse_image_list
 from hloc import pairs_from_sequence
-from cityslam.utils.features import update_features
-
-# from hloc.utils.io import list_h5_names
-# def features_exists(feature_path, images):
-#     skip_names = set(list_h5_names(feature_path) if feature_path.exists() else ())
-#     if set(images).issubset(set(skip_names)):
-#         print('Skipping the extraction.')
-#         return True
-#     return False
 
 
 confs = {'pairing': ['sequential', 'retrieval', 'sequential+retrieval']}
@@ -40,7 +31,6 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
     print("getting images...")
     # Image list is the the relative path to the image from the top most image root folder
-    # image_list = get_images(images_path, subfolder=video_id)
     image_list = parse_image_list(image_list_path)
     print(f"num images : {len(image_list)}")
 
@@ -50,10 +40,6 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
             # We extract global descriptors with NetVLAD and find for each image the most similar ones.
             retrieval_path = extract_features.main(
                 retrieval_conf, images_path, output_model_base, image_list=image_list, overwrite=overwrite)
-
-            # Copy global features and from our file to the 'joint' feature files
-            # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-            # update_features(retrieval_path, outputs, overwrite)
 
         if pairing == 'sequential':
             sfm_pairs = output_model / f'pairs-sequential{window_size}.txt'
@@ -79,10 +65,6 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
 
     # ## Extract and match local features
     feature_path = extract_features.main(feature_conf, images_path, output_model_base, image_list=image_list, overwrite=overwrite)
-
-    # Copy local and global features and from our file to the 'joint' feature files
-    # NB! This procedure is blocking for all other processes trying to access the 'joint' feature files
-    # update_features(feature_path, outputs, overwrite)
 
     # output file for matches
     matches = Path(output_model, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
