@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
 from filelock import FileLock
+from natsort import natsorted
 
 from cityslam.mapping import single_video_pipeline
 
@@ -16,7 +17,7 @@ image_splits = base_dir / 'datasets' / 'image_splits'
 output_path = base_dir / 'outputs' / 'models-features'
 
 # Find all scenes
-scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in sorted(list(image_splits.glob("**/*_images.txt")))]
+scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in natsorted(list(image_splits.glob("**/*_images.txt")))]
 print(f"Total scenes: {len(scene_ids)}")
 
 # Filter out the ones that are already done
