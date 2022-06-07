@@ -1,6 +1,6 @@
 from pathlib import Path
 import os
-from filelock import Timeout, FileLock
+from filelock import FileLock
 
 from cityslam.mapping import single_video_pipeline
 
@@ -28,7 +28,7 @@ for scene_id in scene_ids:
     image_list_path = Path(image_splits) / f"{scene_id}_images.txt"
 
     lock_path = output_path / f"{scene_id}.lock"
-    lock = FileLock(lock_path, timeout=5)
+    lock = FileLock(lock_path)
     with lock:
         reconstruction = single_video_pipeline.main(
             images_path, image_list_path, output_path, video_id=scene_id, window_size=6, num_loc=6, pairing='sequential+retrieval', run_reconstruction=False, overwrite=False)
