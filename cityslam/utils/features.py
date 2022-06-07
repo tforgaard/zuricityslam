@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 
 import h5py
-from filelock import Timeout, FileLock
+from filelock import FileLock
 
 
 def copy_part(single_feature_file, common_feature_file, model_name, overwrite=False):
@@ -10,7 +10,7 @@ def copy_part(single_feature_file, common_feature_file, model_name, overwrite=Fa
     assert Path(single_feature_file).exists(), single_feature_file
 
     lock_path = common_feature_file.parent / f"{common_feature_file.name}.lock"
-    lock = FileLock(lock_path, timeout=5)
+    lock = FileLock(lock_path)
     with lock:
         with h5py.File(common_feature_file, 'a') as common_f:
             with h5py.File(single_feature_file, 'r') as single_f:

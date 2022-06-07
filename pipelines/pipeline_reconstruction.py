@@ -3,7 +3,7 @@ import os
 import subprocess
 import tempfile
 from time import sleep
-from filelock import Timeout, FileLock
+from filelock import FileLock
 
 
 # fix file permission problems
@@ -41,7 +41,7 @@ while min(indexes) < len(scene_ids):
             model_path = output_path / scene_id
 
             lock_path = output_path / f"{scene_id}.lock"
-            lock = FileLock(lock_path, timeout=5)
+            lock = FileLock(lock_path)
             if lock.is_locked:
                 indexes[i] += P
                 processes[i] = None
