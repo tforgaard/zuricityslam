@@ -36,6 +36,22 @@ def get_images_from_recon(sfm_model):
     return sorted(img_list)
 
 
+def get_images(image_path, subfolder=None):
+    globs = ['*.jpg', '*.png', '*.jpeg', '*.JPG', '*.PNG']
+    image_list = []
+    
+    if subfolder is not None:
+        image_path = image_path / subfolder
+    
+    for g in globs:
+        image_list += list(Path(image_path).glob(g))
+
+    image_list = ["/".join(img.parts[-2:]) for img in image_list]
+        
+    image_list = sorted(list(image_list))
+    return image_list
+
+
 def model_path_2_name(model_path):
     return str(model_path).replace("/", "__")
 

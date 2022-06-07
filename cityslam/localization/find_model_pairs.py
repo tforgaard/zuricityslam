@@ -198,7 +198,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--models_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models',
                         help='Path to the models, searched recursively, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-pairs-test',
+    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-pairs',
                         help='Output path, default: %(default)s')
     parser.add_argument('--num_loc', type=int, default=10,
                         help='Number of image pairs for retrieval, default: %(default)s')
@@ -214,6 +214,4 @@ if __name__ == "__main__":
     parser.add_argument('--visualize', action="store_true")
     args = parser.parse_args()
 
-    args.visualize = True
-    args.models_mask = ["DdxEr70jC6E"]
     main(**args.__dict__)
