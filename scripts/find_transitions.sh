@@ -21,7 +21,7 @@ VIDEO_IDS="W25QdyiFnh0 s5MlvdGL8Lg fGxbtg1ytJo uVCG0MAkW0E ctYA9Fzo6WM vl_BfAZf4
 #                                                --output ${VIDS_PATH} \
 #                                                --format 'wv'
 
-python3 -m cityslam.transitions.transitions     --videos_dir ${VIDS_PATH} \
+python3 -m cityslam.preprocessing.transitions   --videos_dir ${VIDS_PATH} \
                                                 --video_ids  ${VIDEO_IDS} \
                                                 --output_transitions ${TRANS_PATH} \
                                                 --output_cropped ${CROPP_PATH} \
