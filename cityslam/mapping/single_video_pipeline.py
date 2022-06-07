@@ -85,7 +85,7 @@ def main(images_path, image_list_path, outputs, video_id, window_size, num_loc, 
     # update_features(feature_path, outputs, overwrite)
 
     # output file for matches
-    matches = Path(output_model, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
+    matches = Path(output_model_base, f'{feature_path.stem}_{matcher_conf["output"]}_{sfm_pairs.stem}.h5')
     
     match_path = match_features.main(
         matcher_conf, sfm_pairs, features=feature_path, matches=matches, overwrite=overwrite)
