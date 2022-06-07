@@ -33,87 +33,83 @@ def main(models_dir, outputs, num_loc, retrieval_interval, resample_runs, min_sc
 
     models_dict = {m: model_m for m, model_m in enumerate(model_folders)}
 
-    for n_ref, model_ref in enumerate(model_folders):
+    for n_target, model_target in enumerate(model_folders):
 
-        img_names_ref = get_images_from_recon(Path(models_dir) / model_ref)
-        descriptor_ref = next(get_model_base(
-            models_dir, model_ref).glob("global-feats*.h5"))
+        for n_ref, model_ref in enumerate(model_folders):
 
-        for n_target, model_target in enumerate(model_folders):
-            if n_ref != n_target:
+            if n_ref >= n_target:
+                continue
 
-                logger.info(f"pairing model {model_target} with {model_ref}")
+            img_names_ref = get_images_from_recon(Path(models_dir) / model_ref)
+            descriptor_ref = next(get_model_base(
+                models_dir, model_ref).glob("global-feats*.h5"))
 
-                sfm_pairs = outputs / models_dict[n_target] / models_dict[n_ref] / f'pairs-merge-{num_loc}.txt'
-                sfm_pairs.parent.mkdir(exist_ok=True, parents=True)
 
-                img_names_target = get_images_from_recon(
-                    Path(models_dir) / model_target)
-                descriptor_target = next(get_model_base(
-                    models_dir, model_target).glob("global-feats*.h5"))
-                queries = img_names_target
+            logger.info(f"pairing model {model_target} with {model_ref}")
 
-                if not sfm_pairs.exists() or overwrite:
+            sfm_pairs = outputs / models_dict[n_target] / models_dict[n_ref] / f'pairs-merge-{num_loc}.txt'
+            sfm_pairs.parent.mkdir(exist_ok=True, parents=True)
 
-                    pairs = []
-                    # Check to see if models are sequential partitions
-                    if get_model_base(models_dir, model_target) == get_model_base(models_dir, model_ref):
-                        pairs = check_for_common_images(
-                            img_names_target, img_names_ref, model_target, model_ref)
+            img_names_target = get_images_from_recon(
+                Path(models_dir) / model_target)
+            descriptor_target = next(get_model_base(
+                models_dir, model_target).glob("global-feats*.h5"))
+            queries = img_names_target
 
-                    # Mask out already matched pairs
-                    match_mask = np.zeros(
-                        (len(queries), len(img_names_ref)), dtype=bool)
-                    for (p1, p2) in pairs:
-                        if p1 in queries:
-                            match_mask[queries.index(
-                                p1), img_names_ref.index(p2)] = True
+            if not sfm_pairs.exists() or overwrite:
 
-                    # Find retrieval pairs
-                    _, score = pairs_from_retrieval_resampling.main(descriptor_target, sfm_pairs,
-                                                                    num_matched=num_loc, query_list=queries,
-                                                                    db_model=Path(models_dir) / model_ref, db_descriptors=descriptor_ref,
-                                                                    min_score=min_score, match_mask=match_mask,
-                                                                    query_interval=retrieval_interval, resample_runs=resample_runs,
-                                                                    visualize=False)
+                pairs = []
+                # Check to see if models are sequential partitions
+                if get_model_base(models_dir, model_target) == get_model_base(models_dir, model_ref):
+                    pairs = check_for_common_images(
+                        img_names_target, img_names_ref, model_target, model_ref)
 
-                    # Add common image pairs
-                    retrieval = parse_retrieval(sfm_pairs)
+                # Mask out already matched pairs
+                match_mask = np.zeros(
+                    (len(queries), len(img_names_ref)), dtype=bool)
+                for (p1, p2) in pairs:
+                    if p1 in queries:
+                        match_mask[queries.index(
+                            p1), img_names_ref.index(p2)] = True
 
-                    for key, val in retrieval.items():
-                        for match in val:
-                            if (key, match) not in pairs:
-                                pairs.append((key, match))
+                # Find retrieval pairs
+                _, score = pairs_from_retrieval_resampling.main(descriptor_target, sfm_pairs,
+                                                                num_matched=num_loc, query_list=queries,
+                                                                db_model=Path(models_dir) / model_ref, db_descriptors=descriptor_ref,
+                                                                min_score=min_score, match_mask=match_mask,
+                                                                query_interval=retrieval_interval, resample_runs=resample_runs,
+                                                                visualize=False)
 
-                    with open(sfm_pairs, 'w') as f:
-                        f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
+                # Add common image pairs
+                retrieval = parse_retrieval(sfm_pairs)
 
-                    scores[n_target, n_ref] = score
+                for key, val in retrieval.items():
+                    for match in val:
+                        if (key, match) not in pairs:
+                            pairs.append((key, match))
 
-                    if visualize:
-                        import matplotlib.pyplot as plt
-                        plt.clf()
-                        plt.imshow(scores, interpolation='none')
-                        plt.colorbar()
-                        plt.savefig(outputs / "model_match_scores.png")
+                with open(sfm_pairs, 'w') as f:
+                    f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
 
-                    save_score(scores_file, score, model_target,
-                               model_ref, overwrite)
+                scores[n_target, n_ref] = score
 
-                else:
-                    logger.info("pairs already found, skipping retrieval...")
+                if visualize:
+                    import matplotlib.pyplot as plt
+                    plt.clf()
+                    plt.imshow(scores, interpolation='none')
+                    plt.colorbar()
+                    plt.savefig(outputs / "model_match_scores.png")
+
+                save_score(scores_file, score, model_target,
+                            model_ref, overwrite)
+
+            else:
+                logger.info("pairs already found, skipping retrieval...")
 
     # Load score file it it exists
     scores_dict = load_score_file(scores_file)
     load_scores(model_folders, model_to_ind, scores, scores_dict)
-
-    total_scores = np.zeros_like(scores)
-    for j in range(scores.shape[0]):
-        for i in range(j, scores.shape[1]):
-            total_scores[i, j] = (scores[j, i] + scores[i, j]) / 2
-
     print(scores)
-    print(total_scores)
 
     if visualize:
         import matplotlib.pyplot as plt
@@ -157,7 +153,7 @@ def save_score(scores_file, score, target, ref, overwrite):
     target = model_path_2_name(target)
     ref = model_path_2_name(ref)
 
-    if overwrite or scores_dict.get(target) is None:
+    if scores_dict.get(target) is None:
         scores_dict[target] = {}
 
     if overwrite or scores_dict[target].get(ref) is None:

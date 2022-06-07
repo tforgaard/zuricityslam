@@ -2,7 +2,7 @@ import json
 import argparse
 from pathlib import Path
 from cityslam.localization import pipeline_abs_pose_estimation
-from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base
+from cityslam.utils.parsers import model_name_2_path
 from cityslam import logger
 
 def main(scores_file, models, output_dir, num_loc, N, max_it, scale_std, min_model_score, max_distance_error, max_angle_error, models_mask=None, only_sequential=False, overwrite=False,visualize=False):

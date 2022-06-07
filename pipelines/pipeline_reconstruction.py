@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 from time import sleep
 from filelock import FileLock
+from natsort import natsorted
 
 
 # fix file permission problems
@@ -17,7 +18,7 @@ image_splits = base_dir / 'datasets' / 'image_splits'
 output_path = base_dir / 'outputs' / 'models-features'
 
 # Find all scenes
-scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in sorted(list(image_splits.glob("**/*_images.txt")))]
+scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in natsorted(list(image_splits.glob("**/*_images.txt")))]
 print(f"Total scenes: {len(scene_ids)}")
 
 # Filter out the ones that are already done

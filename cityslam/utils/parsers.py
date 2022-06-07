@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pycolmap
-
+from natsort import natsorted
 
 def find_models(models_dir, models_mask=None):
     
@@ -21,7 +21,7 @@ def find_models(models_dir, models_mask=None):
     # remove the reconstruction in PATH, as this is redundant
     remove_folders = list(set([model_folder.parent.parent for model_folder in model_folders if model_folder.name.isdigit()]))
 
-    return [model_folder for model_folder in model_folders if model_folder not in remove_folders]
+    return natsorted([model_folder for model_folder in model_folders if model_folder not in remove_folders])
 
 
 def get_images_from_recon(sfm_model):
