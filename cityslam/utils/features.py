@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 
 import h5py
-from filelock import Timeout, FileLock
+from filelock import FileLock
 
 
 def copy_part(single_feature_file, common_feature_file, model_name, overwrite=False):
@@ -10,7 +10,7 @@ def copy_part(single_feature_file, common_feature_file, model_name, overwrite=Fa
     assert Path(single_feature_file).exists(), single_feature_file
 
     lock_path = common_feature_file.parent / f"{common_feature_file.name}.lock"
-    lock = FileLock(lock_path, timeout=5)
+    lock = FileLock(lock_path)
     with lock:
         with h5py.File(common_feature_file, 'a') as common_f:
             with h5py.File(single_feature_file, 'r') as single_f:
@@ -58,21 +58,6 @@ def update_features(feature_file, output, overwrite=False):
     copy_part(feature_file, output_feature_path, model_name, overwrite)
 
     return output_feature_path
-
-
-# def update_joint_features(models_path, output, models_list, overwrite=False):
-#     if models_list is None:
-#         models_list = [m.name for m in Path(models_path).iterdir()]
-#     for model_dir in Path(models_path).iterdir():
-#         if model_dir.is_dir() and model_dir.name in models_list:
-#             feature_file = next(model_dir.glob("feats*.h5"), None)
-#             retrieval_file = next(model_dir.glob("global-feats*.h5"), None)
-
-#             if feature_file is not None:
-#                 update_features(feature_file, models_path, overwrite)
-
-#             if retrieval_file is not None:
-#                 update_features(retrieval_file, models_path, overwrite)
 
 
 def create_joint_feature_file(output, models_path, models_list, type="features"):

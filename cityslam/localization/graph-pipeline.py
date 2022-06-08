@@ -6,7 +6,7 @@ from pathlib import Path
 from hloc.utils import viz_3d
 import pycolmap
 import numpy as np
-from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base
+from cityslam.utils.parsers import find_models
 
 def rand_color():
         return f'rgba({np.random.randint(0,256)},{np.random.randint(42,98)},{np.random.randint(40,90)},0.2)'
@@ -50,19 +50,8 @@ def main(images, models, merge, outputs):
 
     outputs.mkdir(exist_ok=True, parents=True)
 
-    model_folders = [p.parent for p in Path(models).glob("**/images.bin")]
-    remove_folders = []
-    for model_folder in model_folders:
-        
-        # If we have reconstructions in the PATH/models/[0-9] folders
-        # Then we should remove the reconstruction in PATH, as this reconstruction
-        # is the same as one of the ones in PATH/models/[0-9]
-        if model_folder.name.isdigit():    
-            rem_folder = model_folder.relative_to(models)
-            remove_folders.append(rem_folder)
-
-    # Make the model_folder paths relative to models_dir and remove redundant folders
-    model_folders = [model_folder.relative_to(models) for model_folder in model_folders if model_folder not in remove_folders]
+    model_folders = find_models(models)
+    
     model_names = ["__".join(model_f.parts[:2]) for model_f in model_folders]
     model_names = np.unique(model_names)
 

@@ -43,7 +43,7 @@ def create_img_list(cuts_path, images_dir, output, overlap=12.5, fps=2):
                     # add percentage of next part                      
                     stop_ind = min(scene_end + int((scene_lengths[part+1] * (overlap / 100))), len(images) - 2)
                 
-                image_list_file = Path(output) / video_id / f"part{part}_images.txt"
+                image_list_file = Path(output) / video_id / f"part{part:02}_images.txt"
                 image_list_file.parent.mkdir(parents=True, exist_ok=True)
                 with open(image_list_file, 'w+') as out_file:
                     print(start_ind, stop_ind)

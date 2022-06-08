@@ -1,6 +1,7 @@
 from pathlib import Path
 import os
-from filelock import Timeout, FileLock
+from filelock import FileLock
+from natsort import natsorted
 
 from cityslam.mapping import single_video_pipeline
 
@@ -12,11 +13,11 @@ os.umask(0o002)
 base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 images_path = base_dir / 'datasets' / 'images'
-image_splits = base_dir / 'datasets' / 'image_splits'
+image_splits = base_dir / 'datasets' / 'image_splits_new2'
 output_path = base_dir / 'outputs' / 'models-features'
 
 # Find all scenes
-scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in sorted(list(image_splits.glob("**/*_images.txt")))]
+scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in natsorted(list(image_splits.glob("**/*_images.txt")))]
 print(f"Total scenes: {len(scene_ids)}")
 
 # Filter out the ones that are already done
@@ -28,7 +29,7 @@ for scene_id in scene_ids:
     image_list_path = Path(image_splits) / f"{scene_id}_images.txt"
 
     lock_path = output_path / f"{scene_id}.lock"
-    lock = FileLock(lock_path, timeout=5)
+    lock = FileLock(lock_path)
     with lock:
         reconstruction = single_video_pipeline.main(
             images_path, image_list_path, output_path, video_id=scene_id, window_size=6, num_loc=6, pairing='sequential+retrieval', run_reconstruction=False, overwrite=False)

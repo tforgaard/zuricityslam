@@ -192,7 +192,7 @@ if __name__ == "__main__":
                             default=None,
                         help='video_id')
     parser.add_argument('--model_path', type=str,
-                        default='./', #'/cluster/project/infk/courses/252-0579-00L/group07/data/dev/TransNetV2/inference/transnetv2-weights',
+                        default='./preprocessing',
                         help='path to transiton detection model weights')
     parser.add_argument('--output_transitions', type=Path,
                         default='/cluster/project/infk/courses/252-0579-00L/group07/datasets/transitions',
