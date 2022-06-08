@@ -80,6 +80,7 @@ def predictions_to_scenes(predictions: np.ndarray, threshold: float = 0.5):
 
 def add_max_min_cuts(video_file_path, max_scene_length, min_scene_length, transition_file, output_cropped_file, fps=2, overwrite=False):
     if not output_cropped_file.exists() or overwrite:
+        output_cropped_file.parent.mkdir(exist_ok=True, parents=True)
         probe = ffmpeg.probe(video_file_path)
         video_info = next(s for s in probe['streams'] if s['codec_type'] == 'video')
         video_fps = float(Fraction(video_info['r_frame_rate']))
