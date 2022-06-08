@@ -31,7 +31,7 @@ def frame_capture(video_path, images_path, prefix="", fps=2, start='00:00:00', d
 
 def frame_mp(file, videos, output, video_ids=None, overwrite=False, fps=2, start='00:00:00', duration='00:00:00'):
     
-    video_id = file[file.find("[")+1:file.find("]")]
+    video_id = file[file.find("[")+1:file.find("].")]
     
     # skip videoes not in video_ids
     if video_ids is not None and video_id not in video_ids:

@@ -2,7 +2,7 @@ from pathlib import Path
 import os
 from cityslam.mapping import extract
 
-from filelock import Timeout, FileLock
+from filelock import FileLock
 
 # fix file permission problems
 os.umask(0o002)
@@ -20,6 +20,6 @@ video_ids = [p.name for p in list(images_path.iterdir())]
 
 for video_id in video_ids:
     lock_path = output_path / f"{video_id}.lock"
-    lock = FileLock(lock_path, timeout=5)
+    lock = FileLock(lock_path)
     with lock:
         extract.main(images_path, output_path, video_id, overwrite)

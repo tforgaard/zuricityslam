@@ -3,7 +3,8 @@ import os
 import subprocess
 import tempfile
 from time import sleep
-from filelock import Timeout, FileLock
+from filelock import FileLock
+from natsort import natsorted
 
 
 # fix file permission problems
@@ -13,11 +14,11 @@ os.umask(0o002)
 base_dir = Path('/cluster/project/infk/courses/252-0579-00L/group07')
 
 images_path = base_dir / 'datasets' / 'images'
-image_splits = base_dir / 'datasets' / 'image_splits'
+image_splits = base_dir / 'datasets' / 'image_splits_new2'
 output_path = base_dir / 'outputs' / 'models-features'
 
 # Find all scenes
-scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in sorted(list(image_splits.glob("**/*_images.txt")))]
+scene_ids = [str(p.relative_to(image_splits)).split("_images")[0] for p in natsorted(list(image_splits.glob("**/*_images.txt")))]
 print(f"Total scenes: {len(scene_ids)}")
 
 # Filter out the ones that are already done
@@ -41,7 +42,7 @@ while min(indexes) < len(scene_ids):
             model_path = output_path / scene_id
 
             lock_path = output_path / f"{scene_id}.lock"
-            lock = FileLock(lock_path, timeout=5)
+            lock = FileLock(lock_path)
             if lock.is_locked:
                 indexes[i] += P
                 processes[i] = None
