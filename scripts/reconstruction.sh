@@ -8,4 +8,4 @@
 source ./scripts/colmap_startup.sh
 
 # Run hloc pipeline
-python3 pipeline_reconstruction.py
+python3 pipelines/pipeline_reconstruction.py

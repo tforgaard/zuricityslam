@@ -1,11 +1,11 @@
 import json
 import argparse
 from pathlib import Path
-from cityslam.localization import pipeline_abs_pose_estimation
+from cityslam.localization import abs_pose_estimation
 from cityslam.utils.parsers import model_name_2_path
 from cityslam import logger
 
-def main(scores_file, models, output_dir, num_loc, N, max_it, scale_std, min_model_score, max_distance_error, max_angle_error, models_mask=None, only_sequential=False, overwrite=False,visualize=False):
+def main(scores_file, models, output_dir, num_loc, N, min_model_score, models_mask=None, only_sequential=False, overwrite=False, visualize=False):
 
     if models_mask is not None:
         if isinstance(models_mask, str):
@@ -44,16 +44,11 @@ def main(scores_file, models, output_dir, num_loc, N, max_it, scale_std, min_mod
                 continue
 
         logger.info(f"trying to merge target: {target} and reference {reference}")
-        pipeline_abs_pose_estimation.main(models, output_dir, num_loc, N, reference,
-                                          target, max_it, scale_std, max_distance_error, max_angle_error, overwrite=overwrite, visualize=visualize)
+        abs_pose_estimation.main(models, output_dir, target=target, reference=reference, overwrite=overwrite, visualize=visualize)
 
     """
-    TODO:
-    - check if the keys of score.json is the reference or target 
-    - input correct file format with part0 stuff
     - Do we want to iterate over each pair and get partial reconstructions (& do this multiple times) 
         or do we want to merge the first pairs and update the list & use this model to build a bigger map? (instead of doing this multiple times)?
-    - when creating the score.json file ignore pairs with itself?
     """
 
 
@@ -71,16 +66,8 @@ if __name__ == "__main__":
                         help='Number of retrieval pairs to generate for each query image: %(default)s')
     parser.add_argument('--N', type=int, default=5,
                         help='Use every Nth image from the images in the target reconstruction as query image: %(default)s')
-    parser.add_argument('--min_model_score', type=float, default=0.8,
+    parser.add_argument('--min_model_score', type=float, default=0.4,
                         help='Min model match score: %(default)s')
-    parser.add_argument('--max_it', type=int, default=1000,
-                        help='Max iteration for RANSAC: %(default)s')
-    parser.add_argument('--scale_std', type=float, default=0.1,
-                        help='Max iteration for RANSAC: %(default)s')
-    parser.add_argument('--max_distance_error', type=int, default=3,
-                        help='Max iteration for RANSAC: %(default)s')
-    parser.add_argument('--max_angle_error', type=int, default=5,
-                        help='Max iteration for RANSAC: %(default)s')
     parser.add_argument('--only_sequential', action="store_true")
     parser.add_argument('--overwrite', action="store_true")
     parser.add_argument('--visualize', action="store_true")
