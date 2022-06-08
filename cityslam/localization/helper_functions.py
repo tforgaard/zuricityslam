@@ -7,7 +7,7 @@ import pickle
 from cityslam import logger
 
 default_ransac_conf = {
-    'max_it': 1000, 
+    'max_it': 600, 
     'scale_std': 0.153, 
     'max_distance_error' : 0.5, 
     'max_angle_error' :5, 
