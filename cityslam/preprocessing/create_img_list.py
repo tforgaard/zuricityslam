@@ -27,6 +27,7 @@ def create_img_list(cuts_path, images_dir, output, overlap=12.5, fps=2):
 
         with open(cut_file, 'r') as file:
             scenes = np.loadtxt(file, dtype=int)
+            scenes = np.atleast_2d(scenes)
             last_tranistion = 1
             for part, (scene_start, scene_end, transition) in enumerate(scenes):
                 
@@ -55,6 +56,7 @@ def get_all_scene_lengths(cut_file):
     scene_lengths = []
     with open(cut_file, 'r') as file:
         scenes = np.loadtxt(file, dtype=int)
+        scenes = np.atleast_2d(scenes)
         for part, (scene_start, scene_end, transition) in enumerate(scenes):
             scene_length = scene_end - scene_start
             scene_lengths.append(scene_length)
