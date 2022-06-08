@@ -97,7 +97,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
     pose_estimates = parse_pose_estimates(results)
     pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
 
-    if pose_estimates == {}:
+    if pose_estimates == {} or len(pose_estimates.keys()) < min_inliers_transformations:
         return None
         
     target_model = pycolmap.Reconstruction(target_sfm)

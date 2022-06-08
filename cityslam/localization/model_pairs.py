@@ -6,29 +6,22 @@ from hloc import pairs_from_retrieval_resampling
 from hloc.utils.parsers import parse_retrieval
 
 from cityslam import logger
-from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base
+from cityslam.utils.parsers import get_images_from_recon, get_model_base
 
 
 default_model_pair_conf = {
     'num_loc' : 10,
     'retrieval_interval' : 15,
-    'min_retrieval_score' : 0.1,
+    'min_retrieval_score' : 0.15,
     'resample_runs' : 3,
 }
 
 def main(models, output, target, reference , conf={}, overwrite=False, visualize=False, **kwargs):
-    """
-    # Setup the paths
-    target_path = model_name_2_path(target)
-    reference_path = model_name_2_path(reference)
-
-    target_name = model_path_2_name(target)
-    reference_name = model_path_2_name(reference)
-    """
 
     target = Path(target)
     reference = Path(reference)
-    outputs = output / target / reference # f'merge_{model_path_2_name(target)}__{model_path_2_name(reference)}'
+
+    outputs = output / target / reference # f'merge_{target_name}__{reference_name}'
     outputs.mkdir(exist_ok=True, parents=True)
 
     # This is the reference and target model path

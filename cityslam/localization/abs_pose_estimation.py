@@ -18,18 +18,15 @@ from cityslam import logger
 
 
 def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=False, visualize=False):
-    """
-    # Setup the paths
-    target_path = model_name_2_path(target)
-    reference_path = model_name_2_path(reference)
 
-    target_name = model_path_2_name(target)
-    reference_name = model_path_2_name(reference)
-    """
 
     target = Path(target)
     reference = Path(reference)
-    outputs = output_dir / target / reference # f'merge_{model_path_2_name(target)}__{model_path_2_name(reference)}'
+    
+    target_name = model_path_2_name(target)
+    reference_name = model_path_2_name(reference)
+
+    outputs = output_dir / target / reference # f'merge_{target_name}__{reference_name}'
     outputs.mkdir(exist_ok=True, parents=True)
 
     # This is the reference and target model path
@@ -63,7 +60,7 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
     features_joint = create_joint_feature_file(outputs, models, [target.parts[0], reference.parts[0]], type='features')
 
     # Create a text file containing query images names and camera parameters
-    queries_file = outputs / f'{model_path_2_name(target)}_queries_with_intrinsics.txt'
+    queries_file = outputs / f'{target_name}_queries_with_intrinsics.txt'
     create_query_file(target_sfm, query_list, queries_file)
 
     # Output path of matches
@@ -88,7 +85,7 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
 
     best_transform = RANSAC_Transformation(results, target_sfm, target, **ransac_conf)    
     
-    txt = outputs / f'trans__{model_path_2_name(target)}__{model_path_2_name(reference)}.txt'
+    txt = outputs / f'trans__{target_name}__{reference_name}.txt'
     
     if best_transform is not None:
         logger.info("found transform, saving it...")
@@ -104,7 +101,7 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
             viz_3d.plot_reconstruction(fig, reference_model, color='rgba(255,0,0,0.2)', name="reference")
             viz_3d.plot_reconstruction(fig, target_model_transformed, color='rgba(0,255,0,0.2)', name="target transformed")
 
-            fig.write_html(f'{outputs}/reconstruction__{model_path_2_name(target)}__{model_path_2_name(reference)}.html')
+            fig.write_html(f'{outputs}/reconstruction__{target_name}__{reference_name}.html')
     
         return True
 

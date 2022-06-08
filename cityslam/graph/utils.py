@@ -1,13 +1,11 @@
-import networkx as nx
+from pathlib import Path
 
+from natsort import natsorted
 import networkx as nx
 import matplotlib.pyplot as plt
-
-
-from pathlib import Path
+import numpy as np
 from hloc.utils import viz_3d
 import pycolmap
-import numpy as np
 
 from cityslam.utils.parsers import model_path_2_name, model_name_2_path, get_model_base, find_models
 
@@ -22,21 +20,14 @@ def find_graphs(models, graph_dir):
     # model_indexes = [i for model_name in model_names for i, model_base in enumerate(model_bases) if model_base in model_name]
 
     model_transforms = [p for p in Path(graph_dir).glob("**/trans_*")]
-    # model_transform_names = [p.name for p in model_transforms]
 
     transform_edges = [parse_merge_name(tf_name) for tf_name in model_transforms]
     transform_edges = [te for te in transform_edges if te is not None]
 
-
     G = nx.DiGraph()
     
     for (tf_u, tf_v), tf in transform_edges:
-        
-        if tf is None: # We have tried to merge the two models without success, add nodes
-            G.add_node(name, model=model_name_2_path(name))
-            G.add_node(name, model=model_name_2_path(name))
-        else:
-            G.add_edge(tf_u, tf_v, transform=tf)
+        G.add_edge(tf_u, tf_v, transform=tf)
     
     for name, folder in zip(model_names, model_folders):
         if name in G:
@@ -50,11 +41,26 @@ def create_graph_from_model(name):
     G.add_node(name, model=model_name_2_path(name))
     return G
 
+
+def get_tf_filter_view(G):
+
+    def transform_filter(model_1, model_2):
+        if not G.has_edge(model_1, model_2):
+            return False
+        if G[model_1][model_2]['transform'] is None:
+            return False
+        return True
+
+    return nx.subgraph_view(G, filter_edge=transform_filter)
+
 def get_graphs(super_graph):
     '''Returns a list of disjoint graphs, sorted by largest graph first'''
+    
     graphs = []
 
-    for sub_graph_nodes in nx.connected_components(nx.to_undirected(super_graph)):
+    super_graph_filtered = get_tf_filter_view(super_graph)
+
+    for sub_graph_nodes in nx.connected_components(nx.to_undirected(super_graph_filtered)):
         graphs.append(super_graph.subgraph(sub_graph_nodes).copy())
 
     return sorted(graphs, key=len, reverse=True)
@@ -63,8 +69,8 @@ def get_graphs(super_graph):
 def transform_models(models, outputs, graph, base_node=None):
     # Set this to the first node in the chain!
     if base_node is None:
-        base_node = graph.nodes[0]
-    
+        base_node = natsorted(list(graph.nodes))[0]
+
     G_t = graph.copy()
     for node in G_t.nodes:
             G_t.nodes[node]['visited'] = False
@@ -74,11 +80,11 @@ def transform_models(models, outputs, graph, base_node=None):
     b = pycolmap.Reconstruction(models / G_t.nodes[base_node]["model"])
     viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=True, cs=0.2)
     b.export_PLY(outputs/ f"{base_node}.ply")
-    b.export_NVM(outputs/ f"{base_node}.nvm", skip_distortion=False)
-    for parent, child, _ in nx.edge_bfs(G, base_node, orientation='original'):
+
+    for parent, child, _ in nx.edge_bfs(G_t, base_node, orientation='original'):
         if not G_t.nodes[child]['visited']:
             G_t.nodes[child]['visited'] = True
-            m = pycolmap.Reconstruction(models / G.nodes[child]["model"])
+            m = pycolmap.Reconstruction(models / G_t.nodes[child]["model"])
             m.transform(G_t[parent][child]['transform'])
             print(child)
             print(parent)
@@ -89,6 +95,15 @@ def transform_models(models, outputs, graph, base_node=None):
             viz_3d.plot_reconstruction(fig, m, color=rand_color(), name=child, points=True, cs=0.2)
             m.export_PLY(outputs/ f"{child}.ply")
 
+    fig.show()
+
+def transform_exists(graph, model_1, model_2):
+    if not graph.has_edge(model_1, model_2):
+        return False
+    # if graph[model_1][model_2]['transform'] is None:
+    #     return False
+    # Returns true even if transform is None!
+    return True
 
 def rand_color():
         return f'rgba({np.random.randint(0,256)},{np.random.randint(42,98)},{np.random.randint(40,90)},0.2)'
@@ -97,8 +112,12 @@ def rand_color_plt():
         return tuple(np.random.uniform(size=3))
 
 def load_transform(tf_path):
+    matrix = np.loadtxt(tf_path, delimiter=",")
+    if len(matrix) == 0:
+        print("no transform")
+        return None
     try:
-        tf = pycolmap.SimilarityTransform3(np.loadtxt(tf_path, delimiter=",")).inverse()
+        tf = pycolmap.SimilarityTransform3(matrix).inverse()
     except ValueError as e:
         print("no transform")
         return None
@@ -121,15 +140,20 @@ def parse_merge_name(tf_path):
         name1 = "__".join(s[:2])
         name2 = "__".join(s[2:])
 
-    elif len(s) == 5:
+    elif len(s) == 6:
         if "model" in s[2]:
-            #vid1, p1, m1, vid2, p2 = s
+            #vid1, p1, m, #, vid2, p2 = s
+            name1 = "__".join(s[:4])
+            name2 = "__".join(s[4:])
+        elif "model" in s[-2]:
+            #vid1, p1, vid2, p2, m, # = s
             name1 = "__".join(s[:3])
             name2 = "__".join(s[3:])
-        elif "model" in s[-1]:
-            #vid1, p1, vid2, p2, m2 = s
-            name1 = "__".join(s[:2])
-            name2 = "__".join(s[2:])
+
+    elif len(s) == 8:
+        #vid1, p1, m, #, vid2, p2, m, # = s
+        name1 = "__".join(s[:4])
+        name2 = "__".join(s[4:])
     else:
         return None
     return (name1, name2), load_transform(tf_path)
@@ -143,14 +167,13 @@ def draw_graphs(graphs):
             nx.draw(graph)
 
 
-def draw_super(G, models, model_names):
+def draw_super(G, models):
 
-    groups = set([get_model_base(models, model_name_2_path(model_name)).name for model_name in model_names])
+    groups = set([get_model_base(models, model_name_2_path(node)).name for node in G.nodes])
     
     pos = nx.spring_layout(G, k=1.0)
-    nx.draw_networkx_edges(G, pos, width=1.0, alpha=0.5)
+    nx.draw_networkx_edges(get_tf_filter_view(G), pos, width=1.0, alpha=0.5)
     for group in groups:
-        group_nodes = [model_name for model_name in model_names if group in model_name]
-        group_nodes = [node for node in group_nodes for (tf_u, tf_v), tf in G.edges if node == tf_u or node == tf_v]
+        group_nodes = [model_name for model_name in G.nodes if group in model_name]
+        group_nodes = [node for node in group_nodes for (tf_u, tf_v) in G.edges if node == tf_u or node == tf_v]
         nx.draw_networkx_nodes(G, pos, nodelist=group_nodes, node_color=[rand_color_plt()])
-
