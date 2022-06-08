@@ -2,7 +2,7 @@ import json
 import argparse
 from pathlib import Path
 from cityslam.localization import abs_pose_estimation
-from cityslam.utils.parsers import model_name_2_path
+from cityslam.utils.parsers import model_name_2_path, sequential_models
 from cityslam import logger
 
 def main(scores_file, models, output_dir, num_loc, N, min_model_score, models_mask=None, only_sequential=False, overwrite=False, visualize=False):
@@ -36,20 +36,11 @@ def main(scores_file, models, output_dir, num_loc, N, min_model_score, models_ma
             if model_mask not in target.parts:
                 continue
 
-        if only_sequential:
-            seq_n_target = int(target.parts[1].split("part")[-1])
-            seq_n_ref = int(reference.parts[1].split("part")[-1])
-
-            if not (seq_n_target + 1 == seq_n_ref or seq_n_target - 1 == seq_n_ref):
-                continue
+        if only_sequential and not sequential_models(target, reference):
+            continue
 
         logger.info(f"trying to merge target: {target} and reference {reference}")
         abs_pose_estimation.main(models, output_dir, target=target, reference=reference, overwrite=overwrite, visualize=visualize)
-
-    """
-    - Do we want to iterate over each pair and get partial reconstructions (& do this multiple times) 
-        or do we want to merge the first pairs and update the list & use this model to build a bigger map? (instead of doing this multiple times)?
-    """
 
 
 if __name__ == "__main__":

@@ -65,3 +65,11 @@ def model_name_2_path(model_name):
 
 def get_model_base(model_folder, relative_model_path):
     return Path(model_folder) / Path(relative_model_path).parts[0]
+
+def sequential_models(model_1, model_2):
+    seq_n_target = int(model_1.parts[1].split("part")[-1])
+    seq_n_ref = int(model_2.parts[1].split("part")[-1])
+
+    if not (seq_n_target + 1 == seq_n_ref or seq_n_target - 1 == seq_n_ref) or not (model_1.parts[0] == model_2.parts[0]):
+        return False
+    return True
