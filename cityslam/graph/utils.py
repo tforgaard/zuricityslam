@@ -1,3 +1,4 @@
+from genericpath import exists
 from pathlib import Path
 
 from natsort import natsorted
@@ -6,18 +7,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from hloc.utils import viz_3d
 import pycolmap
+import warnings
+
 
 from cityslam.utils.parsers import model_path_2_name, model_name_2_path, get_model_base, find_models
 
 def find_graphs(models, graph_dir):
 
     model_folders = find_models(models)
-    
-    model_names = ["__".join(model_f.parts[:2]) for model_f in model_folders]
-    model_names = np.unique(model_names)
-
-    # model_bases = set([get_model_base(models, model_folder).name for model_folder in model_folders])
-    # model_indexes = [i for model_name in model_names for i, model_base in enumerate(model_bases) if model_base in model_name]
+    model_names = [model_path_2_name(model) for model in model_folders]
 
     model_transforms = [p for p in Path(graph_dir).glob("**/trans_*")]
 
@@ -66,36 +64,60 @@ def get_graphs(super_graph):
     return sorted(graphs, key=len, reverse=True)
 
 
-def transform_models(models, outputs, graph, base_node=None):
+def transform_models(models, outputs, graph, base_node=None, visualize=False, save=True):
     # Set this to the first node in the chain!
     if base_node is None:
         base_node = natsorted(list(graph.nodes))[0]
+
+    outputs = outputs / base_node
 
     G_t = graph.copy()
     for node in G_t.nodes:
             G_t.nodes[node]['visited'] = False
 
     G_t.nodes[base_node]['visited'] = True
-    fig = viz_3d.init_figure()
+
     b = pycolmap.Reconstruction(models / G_t.nodes[base_node]["model"])
-    viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=True, cs=0.2)
-    b.export_PLY(outputs/ f"{base_node}.ply")
+
+    if save:
+        (outputs/ "ply").mkdir(exist_ok=True,parents=True)
+        b.export_PLY(outputs / "ply" / f"{base_node}.ply")
+        
+        model_dir = outputs / "models" / base_node
+        model_dir.mkdir(exist_ok=True)
+        b.write(model_dir)
+
+    
+    if visualize:
+        fig = viz_3d.init_figure()
+        viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=False, cs=0.2)
 
     for parent, child, _ in nx.edge_bfs(G_t, base_node, orientation='original'):
         if not G_t.nodes[child]['visited']:
             G_t.nodes[child]['visited'] = True
             m = pycolmap.Reconstruction(models / G_t.nodes[child]["model"])
             m.transform(G_t[parent][child]['transform'])
-            print(child)
-            print(parent)
+            #print(child)
+            #print(parent)
             for reverse_parent, reverse_child, _ in nx.edge_bfs(G_t, parent, orientation='reverse'):
-
+                    if reverse_child == base_node:
+                        break
+                    #print(reverse_child)
+                    #print(reverse_parent)
                     m.transform(G_t[reverse_parent][reverse_child]['transform'])
+            
+            if save:
+                m.export_PLY(outputs/ "ply" / f"{child}.ply")
 
-            viz_3d.plot_reconstruction(fig, m, color=rand_color(), name=child, points=True, cs=0.2)
-            m.export_PLY(outputs/ f"{child}.ply")
-
-    fig.show()
+                model_dir = outputs / "models" / child
+                model_dir.mkdir(exist_ok=True)
+                m.write(model_dir)
+            
+            if visualize:
+                viz_3d.plot_reconstruction(fig, m, color=rand_color(), name=child, points=False, cs=0.2)
+    
+    if visualize:
+        fig.show()
 
 def transform_exists(graph, model_1, model_2):
     if not graph.has_edge(model_1, model_2):
@@ -112,7 +134,9 @@ def rand_color_plt():
         return tuple(np.random.uniform(size=3))
 
 def load_transform(tf_path):
-    matrix = np.loadtxt(tf_path, delimiter=",")
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        matrix = np.loadtxt(tf_path, delimiter=",")
     if len(matrix) == 0:
         print("no transform")
         return None
@@ -160,12 +184,21 @@ def parse_merge_name(tf_path):
 
 def draw_graphs(graphs):
 
-    import matplotlib.pyplot as plt
+
     for graph in graphs:
         if graph.number_of_nodes() > 1:
+            pos = nx.spring_layout(graph, k=1.0)
             plt.figure()
-            nx.draw(graph)
-
+            
+            #nx.draw(graph, with_labels=True)
+            nx.draw(graph, pos)
+            labels = {}
+            for node in graph.nodes:
+                labels[node] = "/".join(model_name_2_path(node).parts[1:])
+            nx.draw_networkx_labels(graph, pos, labels)
+            # plt.xlabel(model_name_2_path(list(graph.nodes)[0]))
+            plt.title(model_name_2_path(list(graph.nodes)[0]).parts[0])
+            plt.draw()
 
 def draw_super(G, models):
 
