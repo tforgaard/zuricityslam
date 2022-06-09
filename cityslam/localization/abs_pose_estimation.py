@@ -34,6 +34,8 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
     target_sfm = models / target
 
 
+    trans_txt = outputs / f'trans__{target_name}__{reference_name}.txt'
+
     # Retrieval pairs from target to reference
     # Do retrieval from target-queries to reference 
     loc_pairs = next(outputs.glob("pairs*.txt"), None)
@@ -44,6 +46,12 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
     
     retrieval = parse_retrieval(loc_pairs)
     query_list = list(retrieval.keys())
+
+    if not query_list:
+        logger.info("no pairs")
+        logger.info("could not find a transform")
+        np.savetxt(trans_txt,[]) 
+        return False
 
     # Results file containing the estimated poses of the queries
     # results = outputs / f'Merge_hloc_superpoint+superglue_netvlad{num_loc}.txt'
@@ -85,12 +93,10 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
 
     best_transform = RANSAC_Transformation(results, target_sfm, target, **ransac_conf)    
     
-    txt = outputs / f'trans__{target_name}__{reference_name}.txt'
-    
     if best_transform is not None:
         logger.info("found transform, saving it...")
         transform = best_transform.matrix
-        np.savetxt(txt, transform[:-1, :], delimiter=',')
+        np.savetxt(trans_txt, transform[:-1, :], delimiter=',')
         
         reference_model = pycolmap.Reconstruction(reference_sfm)
         target_model_transformed = pycolmap.Reconstruction(target_sfm)
@@ -106,8 +112,8 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
         return True
 
     else:
-        print("could not find a transform")
-        np.savetxt(txt,[]) 
+        logger.info("could not find a transform")
+        np.savetxt(trans_txt,[]) 
         return False
     
 

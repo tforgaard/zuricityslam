@@ -16,7 +16,7 @@ OUTPUT=${BASE}/outputs/${VIDEO}_${PAIRING}
 source ./scripts/colmap_startup.sh
 
 # Run hloc pipeline
-python3 src/mapping/single_video_pipeline.py    --dataset ${IMAGES} \
+python3 -m cityslam.mapping.reconstruction      --dataset ${IMAGES} \
                                                 --outputs ${OUTPUT} \
                                                 --num_loc 7 \
                                                 --window_size 6 \

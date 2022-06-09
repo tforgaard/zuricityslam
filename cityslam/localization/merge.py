@@ -93,8 +93,4 @@ if __name__ == "__main__":
     parser.add_argument('--visualize', action="store_true")
     args = parser.parse_args()
 
-
-    # args.only_sequential = True
-    # args.models_mask = 'ITntTt4qkWY'
-
     main(**args.__dict__)

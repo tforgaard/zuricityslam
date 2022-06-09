@@ -35,12 +35,11 @@ def create_query_file(sfm_model, query_list, output):
             i = sfm_model.find_image_with_name(query)
             file.write(f"{query} {cams[i.camera_id]}\n")
 
-def parse_pose_estimates(pose_estimate_file):
+def parse_pose_estimates(pose_estimate_file, min_num):
     pose_estimates = np.genfromtxt(pose_estimate_file, delimiter=' ', dtype=None, encoding=None)
-
+    
     pose_dict = {}
-
-    if len(pose_estimates) == 0:
+    if pose_estimates.size < min_num:
         return pose_dict
 
     for pose_est in pose_estimates:
@@ -94,7 +93,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
     # We should trust pose estimates with a high number of inliers more than other ones...
 
     # Load the estimates for the query poses in the frame of the reference model
-    pose_estimates = parse_pose_estimates(results)
+    pose_estimates = parse_pose_estimates(results, min_inliers_transformations)
     pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
 
     if pose_estimates == {} or len(pose_estimates.keys()) < min_inliers_transformations:
