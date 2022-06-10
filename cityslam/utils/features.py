@@ -15,8 +15,7 @@ def copy_part(single_feature_file, common_feature_file, model_name, overwrite=Fa
         with h5py.File(common_feature_file, 'a') as common_f:
             with h5py.File(single_feature_file, 'r') as single_f:
                 if model_name not in list(single_f.keys()):
-                    print(f"model not found! {model_name}")
-                    return
+                    raise KeyError(f"model not found! {model_name}")
 
                 if overwrite and model_name in list(common_f.keys()):
                     del common_f[model_name]
@@ -69,7 +68,7 @@ def create_joint_feature_file(output, models_path, models_list, type="features")
         if model_dir.is_dir() and model_dir.name in models_list:
 
             if type == "features":
-                feature_file = next(model_dir.glob("feats*.h5"), None)
+                feature_file = next(model_dir.glob("feats-superpoint-n4096-r1024.h5"), None)
 
                 if feature_file is not None:
                     update_features(feature_file, output, overwrite=True)
