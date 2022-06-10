@@ -77,14 +77,14 @@ def try_merge_model_w_map(models_dir, output_dir, model, map, abs_pose_conf, ove
             if model == map_model:
                 continue
 
-            if map_model.parts[0] not in models_mask:
+            if models_mask is not None and map_model.parts[0] not in models_mask:
                 continue
 
             if transform_exists(map, model_path_2_name(model), map_model_name) and not overwrite:
                 continue
 
             logger.info(f"trying to merge {model} with {map_model}")
-            success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, **abs_pose_conf)
+            success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, ransac_conf=abs_pose_conf)
             merges += success
             if merges >= max_merges:
                 logger.info(f"found max ({max_merges}) amount of merges! Stopping")
