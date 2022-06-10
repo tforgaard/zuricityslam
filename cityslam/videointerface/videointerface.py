@@ -18,7 +18,6 @@ from .. import logger
 
 # google-API
 from apiclient.discovery import build
-from apiclient.errors import HttpError
 
 youTubeApiKey = "AIzaSyDZ7EFO3tvl5HKMj4bgQBzvBhbVhDPiCx8"  # Input your youTubeApiKey
 

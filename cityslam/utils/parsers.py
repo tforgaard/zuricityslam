@@ -65,3 +65,24 @@ def model_name_2_path(model_name):
 
 def get_model_base(model_folder, relative_model_path):
     return Path(model_folder) / Path(relative_model_path).parts[0]
+
+def sequential_models(first_model, second_model, direction='forward'):
+    seq_n_first = int(first_model.parts[1].split("part")[-1])
+    seq_n_second = int(second_model.parts[1].split("part")[-1])
+
+    if not (first_model.parts[0] == second_model.parts[0]):
+        return False
+
+    if direction=='forward':
+        if not (seq_n_first + 1 == seq_n_second):
+            return False
+    elif direction=='backward':
+        if not (seq_n_first - 1 == seq_n_second):
+            return False
+    elif direction is None or direction =='none':
+        if not (seq_n_first + 1 == seq_n_second or seq_n_first - 1 == seq_n_second):
+            return False
+    else:
+        raise KeyError(direction)
+        
+    return True
