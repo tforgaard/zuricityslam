@@ -1,4 +1,3 @@
-from genericpath import exists
 from pathlib import Path
 
 from natsort import natsorted
@@ -142,6 +141,7 @@ def transform_exists(graph, model_1, model_2, include_none=True):
     if graph[model_1][model_2]['transform'] is None and not include_none:
         return False
     # Returns true even if transform is None!
+    print(f"transform already exists {model_1}, {model_2}")
     return True
 
 def rand_color():
@@ -214,7 +214,8 @@ def draw_graphs(graphs):
                 labels[node] = "/".join(model_name_2_path(node).parts[1:])
             nx.draw_networkx_labels(graph, pos, labels)
             # plt.xlabel(model_name_2_path(list(graph.nodes)[0]))
-            plt.title(model_name_2_path(list(graph.nodes)[0]).parts[0])
+            models = list(set([model_name_2_path(node).parts[0] for node in graph.nodes]))
+            plt.title(" ".join(models))
             plt.draw()
 
 def draw_super(G, models):

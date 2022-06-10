@@ -7,6 +7,8 @@ import json
 from cityslam import logger
 from cityslam.utils.parsers import model_path_2_name, model_name_2_path, find_models
 from cityslam.localization import model_pairs
+from matplotlib.colors import LogNorm
+import matplotlib.pyplot as plt
 
 def main(models, outputs, models_mask=None, overwrite=False, visualize=False):
 
@@ -47,7 +49,6 @@ def main(models, outputs, models_mask=None, overwrite=False, visualize=False):
                     scores[n_target, n_ref] = score
 
                     if visualize:
-                        import matplotlib.pyplot as plt
                         plt.clf()
                         plt.imshow(scores, interpolation='none')
                         plt.colorbar()
@@ -65,7 +66,7 @@ def main(models, outputs, models_mask=None, overwrite=False, visualize=False):
     print(scores)
 
     if visualize:
-        import matplotlib.pyplot as plt
+        # scores[scores<0.3]=0.0    
         plt.clf()
         plt.imshow(scores, interpolation='none')
         plt.colorbar()
