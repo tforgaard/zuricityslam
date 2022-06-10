@@ -84,7 +84,7 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
         b.export_PLY(outputs / "ply" / f"{base_node}.ply")
         
         model_dir = outputs / "models" / base_node
-        model_dir.mkdir(exist_ok=True)
+        model_dir.mkdir(exist_ok=True,parents=True)
         b.write(model_dir)
 
     
@@ -92,19 +92,36 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
         fig = viz_3d.init_figure()
         viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=False, cs=0.2)
 
-    for parent, child, _ in nx.edge_bfs(G_t, base_node, orientation='original'):
+    nx.set_node_attributes(G_t, [[]], "ancestors")
+    for parent, child, _ in nx.edge_dfs(G_t, base_node, orientation='original'):
         if not G_t.nodes[child]['visited']:
             G_t.nodes[child]['visited'] = True
+            G_t.nodes[child]['ancestors'].append(parent)
             m = pycolmap.Reconstruction(models / G_t.nodes[child]["model"])
+            if G_t[parent][child]['transform'] is None:
+                continue
             m.transform(G_t[parent][child]['transform'])
-            #print(child)
-            #print(parent)
-            for reverse_parent, reverse_child, _ in nx.edge_bfs(G_t, parent, orientation='reverse'):
-                    if reverse_child == base_node:
-                        break
-                    #print(reverse_child)
-                    #print(reverse_parent)
-                    m.transform(G_t[reverse_parent][reverse_child]['transform'])
+            #print(f"coming from {parent}")
+            #print(f"coming to {child}")
+            
+            nx.set_node_attributes(G_t,False,'done')
+            for reverse_parent, reverse_child, _ in nx.edge_dfs(G_t, parent, orientation='reverse'):
+                
+                if reverse_child == base_node:
+                    break
+                
+                if reverse_parent not in G_t.nodes[child]['ancestors']:
+                    #print(f"{reverse_parent} not ancestor of {child}!")
+                    continue
+
+                if G_t.nodes[reverse_parent]['done'] == True:
+                    # Break when we have taken one path?
+                    break
+
+                G_t.nodes[reverse_parent]['done'] = True
+                #print(f"going back to {reverse_parent}")
+                #print(f"going back from {reverse_child}")
+                m.transform(G_t[reverse_parent][reverse_child]['transform'])
             
             if save:
                 m.export_PLY(outputs/ "ply" / f"{child}.ply")
@@ -119,11 +136,11 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
     if visualize:
         fig.show()
 
-def transform_exists(graph, model_1, model_2):
+def transform_exists(graph, model_1, model_2, include_none=True):
     if not graph.has_edge(model_1, model_2):
         return False
-    # if graph[model_1][model_2]['transform'] is None:
-    #     return False
+    if graph[model_1][model_2]['transform'] is None and not include_none:
+        return False
     # Returns true even if transform is None!
     return True
 
@@ -138,12 +155,12 @@ def load_transform(tf_path):
         warnings.simplefilter("ignore")
         matrix = np.loadtxt(tf_path, delimiter=",")
     if len(matrix) == 0:
-        print("no transform")
+        # print("no transform")
         return None
     try:
         tf = pycolmap.SimilarityTransform3(matrix).inverse()
     except ValueError as e:
-        print("no transform")
+        # print("no transform")
         return None
 
     return tf
@@ -171,8 +188,8 @@ def parse_merge_name(tf_path):
             name2 = "__".join(s[4:])
         elif "model" in s[-2]:
             #vid1, p1, vid2, p2, m, # = s
-            name1 = "__".join(s[:3])
-            name2 = "__".join(s[3:])
+            name1 = "__".join(s[:2])
+            name2 = "__".join(s[2:])
 
     elif len(s) == 8:
         #vid1, p1, m, #, vid2, p2, m, # = s
@@ -191,7 +208,7 @@ def draw_graphs(graphs):
             plt.figure()
             
             #nx.draw(graph, with_labels=True)
-            nx.draw(graph, pos)
+            nx.draw(get_tf_filter_view(graph), pos)
             labels = {}
             for node in graph.nodes:
                 labels[node] = "/".join(model_name_2_path(node).parts[1:])
@@ -208,5 +225,5 @@ def draw_super(G, models):
     nx.draw_networkx_edges(get_tf_filter_view(G), pos, width=1.0, alpha=0.5)
     for group in groups:
         group_nodes = [model_name for model_name in G.nodes if group in model_name]
-        group_nodes = [node for node in group_nodes for (tf_u, tf_v) in G.edges if node == tf_u or node == tf_v]
+        group_nodes = [node for node in group_nodes for (tf_u, tf_v) in G.edges if (node == tf_u or node == tf_v) and G[tf_u][tf_v]['transform'] is not None]
         nx.draw_networkx_nodes(G, pos, nodelist=group_nodes, node_color=[rand_color_plt()])

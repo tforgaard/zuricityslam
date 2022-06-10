@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-
+from filelock import FileLock
 import numpy as np
 from natsort import natsorted
 import networkx as nx
@@ -14,7 +14,9 @@ from cityslam.graph.utils import find_graphs, get_graphs, create_graph_from_mode
 def main(models, graphs, models_mask=None, only_sequential=False, abs_pose_conf={}, overwrite=False, visualize=False):
 
     # TODO: use pickle to save graphs??
-    # map_paths = Path(maps_dir).glob("map_*.pkl") 
+
+    if isinstance(models_mask,str):
+        models_mask = [models_mask]
 
     graphs = Path(graphs)
     graphs.mkdir(exist_ok=True,parents=True)
@@ -28,7 +30,6 @@ def main(models, graphs, models_mask=None, only_sequential=False, abs_pose_conf=
     merged_models = [model_name_2_path(m) for m in merged_models]
 
     all_models = find_models(models, models_mask)
-    # unmerged_models = natsorted(list(set(all_models).difference(set(merged_models))))
 
     if only_sequential:
         for model_target in all_models:
@@ -43,14 +44,14 @@ def main(models, graphs, models_mask=None, only_sequential=False, abs_pose_conf=
                     continue
 
                 map_ref = create_graph_from_model(model_ref)
-                success = try_merge_model_w_map(models, graphs, model_target, map_ref, abs_pose_conf, overwrite, visualize, max_merges=3)
+                success = try_merge_model_w_map(models, graphs, model_target, map_ref, abs_pose_conf, overwrite, visualize, models_mask, max_merges=3)
 
     else:
         for model_ind, model in enumerate(all_models):
             successful_merges = []
             for map_ind, map in enumerate(maps):
                 
-                success = try_merge_model_w_map(models, graphs, model, map, abs_pose_conf, overwrite, visualize, max_merges=3)
+                success = try_merge_model_w_map(models, graphs, model, map, abs_pose_conf, overwrite, visualize, models_mask, max_merges=3)
                 if success:
                     # save map?
                     successful_merges.append(map)
@@ -65,17 +66,29 @@ def main(models, graphs, models_mask=None, only_sequential=False, abs_pose_conf=
                 maps.append(create_graph_from_model(model))
 
 
-def try_merge_model_w_map(models_dir, output_dir, model, map, abs_pose_conf, overwrite, visualize, max_merges=3):
-    merges = 0
-    for map_model_name in map.nodes:
-        map_model = model_name_2_path(map_model_name)
+def try_merge_model_w_map(models_dir, output_dir, model, map, abs_pose_conf, overwrite, visualize, models_mask, max_merges=3):
+    lock_path = Path(models_dir) / f"{model}.lock"
+    lock = FileLock(lock_path)
+    with lock:
+        merges = 0
+        for map_model_name in map.nodes:
+            map_model = model_name_2_path(map_model_name)
 
-        logger.info(f"trying to merge {model} with {map_model}")
-        success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, **abs_pose_conf)
-        merges += success
-        if merges >= max_merges:
-            logger.info(f"found max ({max_merges}) amount of merges! Stopping")
-            break
+            if model == map_model:
+                continue
+
+            if map_model.parts[0] not in models_mask:
+                continue
+
+            if transform_exists(map, model_path_2_name(model), map_model_name) and not overwrite:
+                continue
+
+            logger.info(f"trying to merge {model} with {map_model}")
+            success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, **abs_pose_conf)
+            merges += success
+            if merges >= max_merges:
+                logger.info(f"found max ({max_merges}) amount of merges! Stopping")
+                break
 
     return bool(merges)
 
