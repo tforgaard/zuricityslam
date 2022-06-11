@@ -60,8 +60,8 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
     # Configurations
     matcher_conf = match_features.confs['superglue']
     
-    features_target = next(get_model_base(models, target).glob("feats*.h5"))
-    features_ref = next(get_model_base(models, reference).glob("feats*.h5"))
+    features_target = next(get_model_base(models, target).glob("feats-superpoint-n4096-r1024.h5"))
+    features_ref = next(get_model_base(models, reference).glob("feats-superpoint-n4096-r1024.h5"))
 
     # Path to joint local features
     # Creating joint feature file necessary for localization
