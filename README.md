@@ -25,6 +25,7 @@ Install required python packages, if they are not already installed:
 ```
 $ pip3 install -r requirements.txt
 ```
+**NB! ffmpeg also needs to be installed for preprocessing**
 
 Then run
 ```
@@ -32,22 +33,7 @@ $ pip3 install -e .
 ```
 to install the cityslam
 
-For better reconstruction performance: (Euler specific code!)
-```
-$ source scripts/colmap_startup.sh
-
-$ cd /cluster/project/infk/courses/252-0579-00L/group07/data/pycolmap
-
-$ python3 -m pip install .
-
-```
-
 ## Run this project
-
-### Load packages, i.e. ffmpeg (Euler)
-```
-$ source scripts/colmap_startup.sh
-```
 
 ### Run simple demo of cityslam pipeline
 ```
@@ -58,7 +44,7 @@ $ python3 pipeline.py
 
 #### Find videos for a given query
 ```
-$ python3 -m cityslam.videointerface.videointerface --input_type coordinates --query 47.371667,8.542222
+$ python3 -m cityslam.videointerface.videointerface --query zurich
 ```
 
 #### Download videos
@@ -66,109 +52,64 @@ $ python3 -m cityslam.videointerface.videointerface --input_type coordinates --q
 $ python3 -m cityslam.videointerface.downloader --output $VIDEO_PATH --video_ids W25QdyiFnh0 ...
 ```
 
-#### Preprocess
+#### Preprocessing
 ```
 $ python3 -m cityslam.preprocessing.preprocessing --videos $VIDEO_PATH --output $IMAGES_PATH
 ```
 
 #### Mapping
-
 ```
-$ python3 -m cityslam.mapping.single_video_pipeline --dataset $SINGLE_VIDEO_PATH
-```
-
-## Scripts
-The scripts are useful more intensive jobs
-
-#### Load eth_proxy
-```
-$ module load eth_proxy
+$ python3 -m cityslam.mapping.reconstruction --dataset $SINGLE_VIDEO_PATH
 ```
 
-To submit a batch job, do
+#### Merging
 ```
-$ bsub < scripts/single_video_pipeline.sh
+$ python3 -m cityslam.localization.merge --models $MODELS_PATH --graphs $MERGE_PATH
 ```
-See scripts / code for more info about the different parameters
 
-## ToDo-List:
+## Euler scripts
+See [euler](./euler.md)
 
-- [ ] Video Interface
-	- [x] Download method clean up (SH)
-	- [x] Installer for Python libraries (SH)
-	- [x] Interface Method (SH)
-	- [x] Cache query results (KS)
-		- [x] add option to do dry run without downloading to just save queries
-		- [x] add option to specify how many videos to download/find
-		- [ ] video interface - cache as json (TH)
+## Folder structure
 
-- [ ] Pre-Processing  
-	- [x] Pre-Processing Frame Splitting (TH)
-	- [ ] ~~Pre-Processing opt. Frame splitting based on optical flow, i.e. [iVS3D](https://github.com/iVS3D/iVS3D) (tA)~~
-	- [x] Pre-Processing Transition Splitting (KS)
-	- [x] Pre-Processing Segment videos (KS)
-		- [x] add option for segment length and overlap
-		- [x] remove too short scenes
-	- [ ] ~~Pre-Processing multiprocessing video to image conversion (SK)~~
+./
+├── datasets
+│   ├── images
+│   ├── image_splits
+│   ├── queries
+│   ├── transitions
+│   ├── transitions_cropped
+│   ├── videos
+│   └── videos_wv
+└── outputs
+    ├── merge
+    └── models
 
-- [ ] Mapping 
-	- [x] Add sequential pairing (KS\\/TF)
-	- [x] Make callable main function (KS\\/TF)
-	- [x] Merge sequential pairing and retrieval (global) pairing (KS\\/TF)
-	- [x] Clean up mapping functions and folder names (KS\\/TF)
-	- [x]  Make optimized sequential and retrieval (global) pairing (KS\\/TF)
-	- [ ] Mapping / hloc_for - make incremental_mapper options conf and do some testing
-	- [ ] ~~ Maybe add weighting to retrieval function to give images far away in the sequence higher score than images close in the sequence~~
-	- [ ]  Sucessfully run mapping on a complete zurich city walk sequence (KS\\/TF)
-		- [x] Convert video to jpgs
-		- [ ] Increase number of sequential matches and retrieval matches
-		- [ ] min_num_matches can probably be much lower, i.e., 5?
-		- [ ] init_min_tri_angle/min_tri_angle or something can probably be lower
-		- [x] Add snapshot to colmap reconstruction scripts...
-	- [ ] Merging - look into pipeline Aachen (A) for absolute pose estimation
+## Description of modules 
 
-- [ ] Merging
-	- [ ] Create notebook draft of first merging pipeline (TH)
-	- [ ] Create pipeline from draft (SH)
-	- [ ] RANSAC filter inliers (KS)
+### videointerface
 
-- [ ] Other 
-	- [x] pipeline - global call method (TH,KS\\/TF)
-	- [x] add necesseary requirements for this project (tA)
-	- [x] make it an installable project (tA)
-	- [x] MTP - presentation slides ready (A)
-	- [ ] Create poster for final presentation (TH)
-		- [ ] motivation / problem definition, (Tom)
-		- [ ] Data fetching, (Senthuran)
-		- [ ] Model generation, (Kristoffer)
-		- [ ] Model merging (Theodor)
-		- [ ] results/discusion (Theodor)
-	- [ ] Prepare for final presentation 
+- videointerface.py: The video interface module takes in a city name and queries the YouTube API for relevant videos. These videos are ranked and returned based on relevance.
+
+- downloader.py: Downloads a list of youtube videos to datasets/videos. 
+
+### Preprocessing
+- transitions.py: Takes care of dividing the videos into scenes based on transitions and length. To do the transition detection we use [TransNetV2
+](https://github.com/soCzech/TransNetV2/). The output of the transition detection is a txt file placed in datasets/transitions/ that contain the start and end frame of each scene. The other output of this file is datasets/transitions_cropped which is the same as transitions but too short scenes are removed and too long ones are split up into shorter ones. The lists in transitions_cropped is also scaled by fps. 
+
+- preprocessing.py: Extracts frames for a list of videos at a given fps and places them in datasets/images.
+
+- create_img_list.py: Create a list of which images that are to be included in each scene. Also lets you specify how much overlap you want between sequential scenes. Outputs a txt file in outputs/image_splits
+
+- transnetv2_pytorch.py: Class used in transtions detection. Downloaded from [here](https://github.com/soCzech/TransNetV2/tree/master/inference-pytorch). All credit to github.com/soCzech.
+
+### Mapping 
+
+- reconstruction.py: This module creates a reconstruction for a given image list. First it extracts global features, and find image pairs either via sequential pairing, image retrieval or both. Afterwards it extracts and matches local features. And lastly reconstructs a model using pycolmap which is placed in outputs/models.
+
+
+### HLOC_fork
 
 
 
-## Meetings:
 
-[Supervisor Meeting 20220315](docu/meeting20220315.md)
-
-[Team Meeting 20220315](docu/teammeeting20220315.md)
-
-[Supervisor Meeting 20220412](docu/meeting20220412.md)
-
-## Abbreviations:
-
-KS Kristoffer Steinsland
-
-SK Senthuran Kalananthan
-
-TF Theodor Forgaard
-
-TH Tom Heine
-
-tA to Assign
-
-A all
-
-## Other:
-
-try to follow [PEP8 style guidelines](https://peps.python.org/pep-0008/), install i.e. autopep8 

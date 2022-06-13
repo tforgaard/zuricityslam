@@ -1,3 +1,8 @@
+"""
+This work was downloaded from https://github.com/soCzech/TransNetV2
+All credit to https://github.com/soCzech/
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as functional
