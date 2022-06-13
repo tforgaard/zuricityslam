@@ -63,20 +63,36 @@ def get_graphs(super_graph):
     return sorted(graphs, key=len, reverse=True)
 
 
+def get_tf(G, parent, child):
+    if G.has_edge(parent, child):
+        transform = G[parent][child].get('transform')
+        # print("not inverse")
+            
+    elif G.has_edge(child, parent):
+        transform = G[child][parent].get('transform')
+        # print("inverse!")
+
+    else:
+        print("Edge does not exist!")
+        return None
+
+    if transform is None:
+        print("could not find tf!")
+    
+    return transform
+
 def transform_models(models, outputs, graph, base_node=None, visualize=False, save=True):
-    # Set this to the first node in the chain!
     if base_node is None:
         base_node = natsorted(list(graph.nodes))[0]
 
     outputs = outputs / base_node
 
-    G_t = graph.copy()
-    for node in G_t.nodes:
-            G_t.nodes[node]['visited'] = False
+    G = graph.copy()
+    for node in G.nodes:
+            G.nodes[node]['visited'] = False
+    G.nodes[base_node]['visited'] = True
 
-    G_t.nodes[base_node]['visited'] = True
-
-    b = pycolmap.Reconstruction(models / G_t.nodes[base_node]["model"])
+    b = pycolmap.Reconstruction(models / G.nodes[base_node]["model"])
 
     if save:
         (outputs/ "ply").mkdir(exist_ok=True,parents=True)
@@ -86,41 +102,39 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
         model_dir.mkdir(exist_ok=True,parents=True)
         b.write(model_dir)
 
-    
     if visualize:
         fig = viz_3d.init_figure()
         viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=False, cs=0.2)
 
-    nx.set_node_attributes(G_t, [[]], "ancestors")
-    for parent, child, _ in nx.edge_dfs(G_t, base_node, orientation='original'):
-        if not G_t.nodes[child]['visited']:
-            G_t.nodes[child]['visited'] = True
-            G_t.nodes[child]['ancestors'].append(parent)
-            m = pycolmap.Reconstruction(models / G_t.nodes[child]["model"])
-            if G_t[parent][child]['transform'] is None:
-                continue
-            m.transform(G_t[parent][child]['transform'])
-            #print(f"coming from {parent}")
-            #print(f"coming to {child}")
+    for parent, child in nx.bfs_edges(G.to_undirected(as_view=True), base_node, reverse=False):
+        if not G.nodes[child]['visited']:
+            G.nodes[child]['visited'] = True
+            G.nodes[child]['parent'] = parent
+            m = pycolmap.Reconstruction(models / G.nodes[child]["model"])
             
-            nx.set_node_attributes(G_t,False,'done')
-            for reverse_parent, reverse_child, _ in nx.edge_dfs(G_t, parent, orientation='reverse'):
-                
-                if reverse_child == base_node:
-                    break
-                
-                if reverse_parent not in G_t.nodes[child]['ancestors']:
-                    #print(f"{reverse_parent} not ancestor of {child}!")
-                    continue
-
-                if G_t.nodes[reverse_parent]['done'] == True:
-                    # Break when we have taken one path?
+            debug_str = f"\n{parent} --> {child}"
+            
+            r_child = child
+            while True:
+                if G.nodes[r_child].get('parent') is None:
+                    # print("reached base node")
                     break
 
-                G_t.nodes[reverse_parent]['done'] = True
-                #print(f"going back to {reverse_parent}")
-                #print(f"going back from {reverse_child}")
-                m.transform(G_t[reverse_parent][reverse_child]['transform'])
+                else:
+                    r_parent = G.nodes[r_child]['parent']
+
+                tf = get_tf(G, r_parent, r_child)
+                if tf is None:
+                    print("error: tf not found!")
+                    break
+
+                m.transform(tf)
+
+                debug_str += f"\n\t{r_parent} <-- {r_child}"
+
+                r_child = r_parent
+            
+            # print(debug_str)
             
             if save:
                 m.export_PLY(outputs/ "ply" / f"{child}.ply")
