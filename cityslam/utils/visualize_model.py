@@ -34,6 +34,7 @@ original code https://github.com/colmap/colmap/blob/dev/scripts/python/visualize
 import argparse
 import numpy as np
 import open3d
+from pathlib import Path
 
 from read_write_model import read_model, write_model, qvec2rotmat, rotmat2qvec
 

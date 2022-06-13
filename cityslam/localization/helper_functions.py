@@ -4,6 +4,17 @@ import numpy as np
 import pycolmap
 import pickle
 
+from cityslam import logger
+
+default_ransac_conf = {
+    'max_it': 600, 
+    'scale_std': 0.153, 
+    'max_distance_error' : 0.5, 
+    'max_angle_error' :5, 
+    'min_inliers_estimates' : 50, 
+    'min_inliers_transformations' : 10, 
+}
+
 
 def create_query_file(sfm_model, query_list, output):
     """Create a query file used for localization"""
@@ -24,10 +35,13 @@ def create_query_file(sfm_model, query_list, output):
             i = sfm_model.find_image_with_name(query)
             file.write(f"{query} {cams[i.camera_id]}\n")
 
-def parse_pose_estimates(pose_estimate_file):
+def parse_pose_estimates(pose_estimate_file, min_num):
     pose_estimates = np.genfromtxt(pose_estimate_file, delimiter=' ', dtype=None, encoding=None)
-
+    
     pose_dict = {}
+    if pose_estimates.size < min_num:
+        return pose_dict
+
     for pose_est in pose_estimates:
         img_name, *qvec, x, y, z = pose_est
         pose_dict[img_name] = pycolmap.Image(tvec=[x, y, z], qvec=np.array(qvec))
@@ -41,10 +55,10 @@ def filter_pose_estimates(pose_estimates, pose_estimate_file, min_inliers):
         log = pickle.load(log_file)
         for img in pose_estimates.keys():
             front_str = img.split('_img')[0]
-            try:
-                inliers = len(log['loc'][front_str + '/' + img]['PnP_ret']['inliers'])
-            except KeyError as e:
-                print("could not find inliers")
+            PnP = log['loc'][front_str + '/' + img]['PnP_ret']
+            if PnP['success']:
+                inliers = len(PnP['inliers'])
+            else:
                 inliers = 0
             if inliers >= min_inliers:
                 new_pose_estimates[img] = pose_estimates[img]
@@ -74,38 +88,28 @@ def calculate_transform(pose1, pose2, scale=1.0):
 
     return transform
 
-"""
 def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_distance_error, max_angle_error, min_inliers_estimates, min_inliers_transformations):
+ 
+    # We should trust pose estimates with a high number of inliers more than other ones...
+
     # Load the estimates for the query poses in the frame of the reference model
-    pose_estimates = parse_pose_estimates(results)
-    #pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
+    pose_estimates = parse_pose_estimates(results, min_inliers_transformations)
+    pose_estimates = filter_pose_estimates(pose_estimates, results, min_inliers_estimates)
+
+    if pose_estimates == {} or len(pose_estimates.keys()) < min_inliers_transformations:
+        return None
+        
     target_model = pycolmap.Reconstruction(target_sfm)
-    
-    
-    max_distance_error = 0.5
-    max_angle_error = 5 # in degrees
-    max_inliers = 0
+
     best_transform = None
     best_query = ""
     best_scale = 1.0
     best_distance_error = 10000
     best_angle_error = 180
-    max_it = 800
-    num_it = 0
-    # Calculate standard deviation for scale distribution according to 1.96 rule
-    # this std means that 95% of all samples will lie inside the interval [0.7, 1.3]
-    scale_std = 0.3 / 1.96
-    
     max_inliers = 0
-    best_transform = None
-    best_query = ""
-    best_scale = 1.0
-    best_distance_error = 10000
-    best_angle_error = 180
-    
-    num_it = 0
-    # TODO: exchange outer loop with a while loop with max iterations and random sample
+
     # for img_name1, pose_est1 in pose_estimates.items():
+    num_it = 0
     while num_it < max_it:
         ind = np.random.randint(len(pose_estimates.keys()))
         img_name1 = list(pose_estimates.keys())[ind]
@@ -119,8 +123,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
         target_model_trans_tmp = pycolmap.Reconstruction(target_sfm)
 
         # Pose of the query in the original target model frame
-        #pose_in_target1 = target_model.find_image_with_name(f'{target}/' + img_name1)
-        pose_in_target1 = target_model.find_image_with_name(f'{target.split("/")[0]}/' + img_name1)
+        pose_in_target1 = target_model.find_image_with_name(f'{str(target).split("/")[0]}/' + img_name1)
 
         # Transform which hopefully aligns the target model with the reference model
         transform1 = calculate_transform(pose_in_target1, pose_est1, scale1)
@@ -133,7 +136,7 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
         # 'Inner loop' comparing the transformation found against the other pose estimates
         for img_name2, pose_est2 in pose_estimates.items():
 
-            pose_in_target2 = target_model_trans_tmp.find_image_with_name(f'{target}/' + img_name2)
+            pose_in_target2 = target_model_trans_tmp.find_image_with_name(f'{str(target).split("/")[0]}/' + img_name2)
             
             # This transform should be equal to a rotation matrix like identity 
             # and zero translation if the pose_est1 and pose_est2 agree 
@@ -161,12 +164,11 @@ def RANSAC_Transformation(results, target_sfm, target, max_it, scale_std, max_di
             best_scale = scale1
             best_distance_error = np.mean(inliers_d)
             best_angle_error = np.mean(inliers_ang)
-            print(f"currently best query: {best_query}, scale: {scale1}, {max_inliers}/{len(pose_estimates.keys())} inliers")
+            logger.info(f"currently best query: {best_query}, scale: {scale1}, {max_inliers}/{len(pose_estimates.keys())} inliers")
         
         num_it += 1
-        
+
     if max_inliers < min_inliers_transformations:
         return None
-
+    
     return best_transform
-"""

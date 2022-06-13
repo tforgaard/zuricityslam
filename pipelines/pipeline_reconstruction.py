@@ -29,6 +29,8 @@ print(f"Scenes left: {len(scene_ids)}")
 scene_ids = [scene_id for scene_id in scene_ids if next((output_path / scene_id).glob("**/database.db"), None) is not None]
 print(f"Scenes ready for recon: {len(scene_ids)}")
 
+# scene_ids = [scene_id for scene_id in scene_ids if 'W25QdyiFnh0' in scene_id]
+
 P = min(8, len(scene_ids))  # NUMBER OF PARALLEL RECONSTRUCTIONS TO RUN
 
 indexes = [i for i in range(P)]

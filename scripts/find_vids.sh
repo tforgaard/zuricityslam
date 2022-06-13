@@ -6,8 +6,7 @@ source ./scripts/colmap_startup.sh
 BASE=/cluster/project/infk/courses/252-0579-00L/group07
 QUERY_PATH=${BASE}/datasets/queries
 
-QUERY_TYPE="coordinates"
-QUERY="47.371667, 8.542222"
+QUERY="zurich"
 N_VIDS="25"
 
 python3 -m cityslam.videointerface.videointerface   --queries_path ${QUERY_PATH} \

@@ -3,7 +3,7 @@ import os
 
 from cityslam.videointerface import videointerface, downloader
 from cityslam.preprocessing import preprocessing
-from cityslam.mapping import single_video_pipeline
+from cityslam.mapping import reconstruction
 from cityslam.utils import visualization
 
 # fix file permission problems
@@ -44,7 +44,7 @@ image_folders = preprocessing.main(
 # run sfm on videos
 for image_folder in image_folders:
     sfm_path = output_path / image_folder.name
-    reconstruction = single_video_pipeline.main(
+    reconstruction = reconstruction.main(
         image_folder, sfm_path, window_size=6, num_loc=6, pairing='sequential+retrieval', run_reconstruction=True)
 
     # Visualize feature points

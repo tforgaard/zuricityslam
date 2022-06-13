@@ -3,20 +3,20 @@ from pathlib import Path
 import numpy as np
 import json
 
-from hloc import pairs_from_retrieval_resampling
-from hloc.utils.parsers import parse_retrieval
 
 from cityslam import logger
-from cityslam.utils.parsers import get_images_from_recon, model_path_2_name, model_name_2_path, get_model_base, find_models
+from cityslam.utils.parsers import model_path_2_name, model_name_2_path, find_models
+from cityslam.localization import model_pairs
+from matplotlib.colors import LogNorm
+import matplotlib.pyplot as plt
 
-
-def main(models_dir, outputs, num_loc, retrieval_interval, resample_runs, min_score, models_mask=None, overwrite=False, visualize=False):
+def main(models, outputs, models_mask=None, overwrite=False, visualize=False):
 
     outputs = Path(outputs)
     if not outputs.exists():
         outputs.mkdir(mode=0o777, parents=True, exist_ok=True)
 
-    model_folders = find_models(models_dir, models_mask)
+    model_folders = find_models(models, models_mask)
     
     logger.info(f"Scenes ready for pairing: {len(model_folders)}")
 
@@ -31,7 +31,7 @@ def main(models_dir, outputs, num_loc, retrieval_interval, resample_runs, min_sc
 
     load_scores(model_folders, model_to_ind, scores, scores_dict)
 
-    models_dict = {m: model_m for m, model_m in enumerate(model_folders)}
+    # models_dict = {m: model_m for m, model_m in enumerate(model_folders)}
 
     for n_target, model_target in enumerate(model_folders):
 
@@ -40,71 +40,25 @@ def main(models_dir, outputs, num_loc, retrieval_interval, resample_runs, min_sc
             if n_ref >= n_target:
                 continue
 
-            img_names_ref = get_images_from_recon(Path(models_dir) / model_ref)
-            descriptor_ref = next(get_model_base(
-                models_dir, model_ref).glob("global-feats*.h5"))
+            if check_score(scores_file, model_target, model_ref) is None or overwrite:
 
+                _, score = model_pairs.main(models, outputs, model_target, model_ref, overwrite=overwrite, visualize=False)
 
-            logger.info(f"pairing model {model_target} with {model_ref}")
+                if score is not None:
 
-            sfm_pairs = outputs / models_dict[n_target] / models_dict[n_ref] / f'pairs-merge-{num_loc}.txt'
-            sfm_pairs.parent.mkdir(exist_ok=True, parents=True)
+                    scores[n_target, n_ref] = score
 
-            img_names_target = get_images_from_recon(
-                Path(models_dir) / model_target)
-            descriptor_target = next(get_model_base(
-                models_dir, model_target).glob("global-feats*.h5"))
-            queries = img_names_target
+                    if visualize:
+                        plt.clf()
+                        plt.imshow(scores, interpolation='none')
+                        plt.colorbar()
+                        plt.savefig(outputs / "model_match_scores.png")
 
-            if not sfm_pairs.exists() or overwrite:
-
-                pairs = []
-                # Check to see if models are sequential partitions
-                if get_model_base(models_dir, model_target) == get_model_base(models_dir, model_ref):
-                    pairs = check_for_common_images(
-                        img_names_target, img_names_ref, model_target, model_ref)
-
-                # Mask out already matched pairs
-                match_mask = np.zeros(
-                    (len(queries), len(img_names_ref)), dtype=bool)
-                for (p1, p2) in pairs:
-                    if p1 in queries:
-                        match_mask[queries.index(
-                            p1), img_names_ref.index(p2)] = True
-
-                # Find retrieval pairs
-                _, score = pairs_from_retrieval_resampling.main(descriptor_target, sfm_pairs,
-                                                                num_matched=num_loc, query_list=queries,
-                                                                db_model=Path(models_dir) / model_ref, db_descriptors=descriptor_ref,
-                                                                min_score=min_score, match_mask=match_mask,
-                                                                query_interval=retrieval_interval, resample_runs=resample_runs,
-                                                                visualize=False)
-
-                # Add common image pairs
-                retrieval = parse_retrieval(sfm_pairs)
-
-                for key, val in retrieval.items():
-                    for match in val:
-                        if (key, match) not in pairs:
-                            pairs.append((key, match))
-
-                with open(sfm_pairs, 'w') as f:
-                    f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
-
-                scores[n_target, n_ref] = score
-
-                if visualize:
-                    import matplotlib.pyplot as plt
-                    plt.clf()
-                    plt.imshow(scores, interpolation='none')
-                    plt.colorbar()
-                    plt.savefig(outputs / "model_match_scores.png")
-
-                save_score(scores_file, score, model_target,
-                            model_ref, overwrite)
+                    save_score(scores_file, score, model_target,
+                                model_ref, overwrite)
 
             else:
-                logger.info("pairs already found, skipping retrieval...")
+                logger.info("score already found")
 
     # Load score file it it exists
     scores_dict = load_score_file(scores_file)
@@ -112,7 +66,7 @@ def main(models_dir, outputs, num_loc, retrieval_interval, resample_runs, min_sc
     print(scores)
 
     if visualize:
-        import matplotlib.pyplot as plt
+        # scores[scores<0.3]=0.0    
         plt.clf()
         plt.imshow(scores, interpolation='none')
         plt.colorbar()
@@ -146,6 +100,18 @@ def load_score_file(scores_file):
     return scores_dict
 
 
+def check_score(scores_file, target, ref):
+    scores_dict = load_score_file(scores_file)
+
+    target = model_path_2_name(target)
+    ref = model_path_2_name(ref)
+
+    if scores_dict.get(target) is None:
+        return None
+
+    return scores_dict[target].get(ref)
+
+
 def save_score(scores_file, score, target, ref, overwrite):
 
     scores_dict = load_score_file(scores_file)
@@ -165,45 +131,12 @@ def save_score(scores_file, score, target, ref, overwrite):
         json.dump(scores_dict, f)
 
 
-def check_for_common_images(img_names_target, img_names_ref, target, reference):
-
-    pairs = []
-
-    seq_n_target = int(target.parts[1].split("part")[-1])
-    seq_n_ref = int(reference.parts[1].split("part")[-1])
-
-    if seq_n_target + 1 == seq_n_ref or seq_n_target - 1 == seq_n_ref:
-        # look for same images in the two reconstructions..
-        img_stems_target = set([img_name_target.split("/")[-1]
-                               for img_name_target in img_names_target])
-        img_stems_ref = set([img_name_ref.split("/")[-1]
-                            for img_name_ref in img_names_ref])
-
-        img_stems_common = img_stems_target.intersection(img_stems_ref)
-
-        for img_stem_common in img_stems_common:
-
-            pairs.append(("/".join([target.parts[0], img_stem_common]),
-                          "/".join([reference.parts[0], img_stem_common])))
-
-        logger.info(f"found {len(pairs)} pairs from common images")
-    return pairs
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--models_dir', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models',
+    parser.add_argument('--models', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-features',
                         help='Path to the models, searched recursively, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/model-pairs',
+    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/merge',
                         help='Output path, default: %(default)s')
-    parser.add_argument('--num_loc', type=int, default=10,
-                        help='Number of image pairs for retrieval, default: %(default)s')
-    parser.add_argument('--retrieval_interval', type=int, default=15,
-                        help='How often to trigger retrieval: %(default)s')
-    parser.add_argument('--resample_runs', type=int, default=3,
-                        help='How often to trigger retrieval: %(default)s')
-    parser.add_argument('--min_score', type=float, default=0.1,
-                        help='Minimum score for retrieval: %(default)s')
     parser.add_argument('--models_mask', nargs="+", default=None,
                         help='Only include given models: %(default)s')
     parser.add_argument('--overwrite', action="store_true")

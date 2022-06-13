@@ -9,7 +9,6 @@ from .. import logger
 
 # google-API
 from apiclient.discovery import build
-from apiclient.errors import HttpError
 
 youTubeApiKey = "***REMOVED***"  # Input your youTubeApiKey
 
