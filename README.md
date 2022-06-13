@@ -52,7 +52,7 @@ $ python3 -m cityslam.videointerface.videointerface --query zurich
 $ python3 -m cityslam.videointerface.downloader --output $VIDEO_PATH --video_ids W25QdyiFnh0 ...
 ```
 
-#### Preprocess
+#### Preprocessing
 ```
 $ python3 -m cityslam.preprocessing.preprocessing --videos $VIDEO_PATH --output $IMAGES_PATH
 ```
@@ -70,8 +70,6 @@ $ python3 -m cityslam.localization.merge --models $MODELS_PATH --graphs $MERGE_P
 ## Euler scripts
 See [euler](./euler.md)
 
-
-
 ## Folder structure
 
 ./
@@ -86,3 +84,25 @@ See [euler](./euler.md)
 └── outputs
     ├── merge
     └── models
+
+## Description of modules 
+
+### videointerface
+
+- videointerface.py: The video interface module takes in a city name and queries the YouTube API for relevant videos. These videos are ranked and returned based on relevance.
+
+- downloader.py: Downloads a list of youtube videos to datasets/videos. 
+
+### Preprocessing
+- Transitions.py: Takes care of dividing the videos into scenes based on transitions and length. To do the transition detection we use [TransNetV2
+](https://github.com/soCzech/TransNetV2/). The output of the transition detection is a txt file placed in datasets/transitions/ that contain the start and end frame of each scene. The other output of this file is datasets/transitions_cropped which is the same as transitions but too short scenes are removed and too long ones are split up into shorter ones. The lists in transitions_cropped is also scaled by fps. 
+
+- Preprocessing.py: Extracts frames for a list of videos at a given fps and places them in datasets/images.
+
+- Create_img_list.py: Create a list of which images that are to be included in each scene. Also lets you specify how much overlap you want between sequential scenes. Outputs a txt file in outputs/image_splits
+
+- transnetv2_pytorch.py: Class used in transtions detection. Downloaded from [here](https://github.com/soCzech/TransNetV2/tree/master/inference-pytorch). All credit to github.com/soCzech.
+
+
+
+
