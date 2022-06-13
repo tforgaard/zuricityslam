@@ -94,14 +94,21 @@ See [euler](./euler.md)
 - downloader.py: Downloads a list of youtube videos to datasets/videos. 
 
 ### Preprocessing
-- Transitions.py: Takes care of dividing the videos into scenes based on transitions and length. To do the transition detection we use [TransNetV2
+- transitions.py: Takes care of dividing the videos into scenes based on transitions and length. To do the transition detection we use [TransNetV2
 ](https://github.com/soCzech/TransNetV2/). The output of the transition detection is a txt file placed in datasets/transitions/ that contain the start and end frame of each scene. The other output of this file is datasets/transitions_cropped which is the same as transitions but too short scenes are removed and too long ones are split up into shorter ones. The lists in transitions_cropped is also scaled by fps. 
 
-- Preprocessing.py: Extracts frames for a list of videos at a given fps and places them in datasets/images.
+- preprocessing.py: Extracts frames for a list of videos at a given fps and places them in datasets/images.
 
-- Create_img_list.py: Create a list of which images that are to be included in each scene. Also lets you specify how much overlap you want between sequential scenes. Outputs a txt file in outputs/image_splits
+- create_img_list.py: Create a list of which images that are to be included in each scene. Also lets you specify how much overlap you want between sequential scenes. Outputs a txt file in outputs/image_splits
 
 - transnetv2_pytorch.py: Class used in transtions detection. Downloaded from [here](https://github.com/soCzech/TransNetV2/tree/master/inference-pytorch). All credit to github.com/soCzech.
+
+### Mapping 
+
+- reconstruction.py: This module creates a reconstruction for a given image list. First it extracts global features, and find image pairs either via sequential pairing, image retrieval or both. Afterwards it extracts and matches local features. And lastly reconstructs a model using pycolmap which is placed in outputs/models.
+
+
+### HLOC_fork
 
 
 
