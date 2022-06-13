@@ -9,3 +9,4 @@ ffmpeg-python
 opencv-python
 yt-dlp
 networkx
+geopy
