@@ -1,6 +1,6 @@
 # ZüriCity-SLAM
 ## Introduction
-ToDo: add this
+This project tries to reconstruct Zürich from Youtube videos
 
 ## Prerequisites
 Project is created with
@@ -31,14 +31,15 @@ Then run
 ```
 $ pip3 install -e .
 ```
-to install the cityslam
+to install cityslam
 
 ## Run this project
 
 ### Run simple demo of cityslam pipeline
-```
-$ python3 pipeline.py
-```
+Run the `demo_pipeline.ipynb` notebook
+
+
+## Run cityslam
 
 ### To run the intermediate steps of the pipeline
 
@@ -72,6 +73,7 @@ See [euler](./euler.md)
 
 ## Folder structure
 
+```
 ./
 ├── datasets
 │   ├── images
@@ -82,8 +84,12 @@ See [euler](./euler.md)
 │   ├── videos
 │   └── videos_wv
 └── outputs
+    ├── graph
     ├── merge
     └── models
+```
+
+Each main folder typically contain a separate folder / file for each video, named after video id, i.e. `W25QdyiFnh0`.
 
 ## Description of modules 
 
@@ -107,8 +113,17 @@ See [euler](./euler.md)
 
 - reconstruction.py: This module creates a reconstruction for a given image list. First it extracts global features, and find image pairs either via sequential pairing, image retrieval or both. Afterwards it extracts and matches local features. And lastly reconstructs a model using pycolmap which is placed in outputs/models.
 
+### Localization
+- find_model_pairs.py: Find potential model matches and creates a json file containing model match scores, which can be used for more efficient merging
+- abs_pose_estimation.py: Tries to find a transformation between two models
+- helper_functions.py: RANSAC algorithm and more
+- merge.py: Tries to merge all models 
+
 
 ### HLOC_fork
+- We forked HLoc as some parts fit better within HLoc, we added
+- pairs_from_sequential.py: generate sequential pairs, optionally with retrieval as well
+- pairs_from_retrieval_resampling.py: Run retrieval routine with resampling to find better pairs
 
 
 
