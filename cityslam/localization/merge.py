@@ -127,7 +127,7 @@ def try_merge_model_w_map(models_dir, output_dir, model, map, abs_pose_conf, ove
 
             logger.info(f"trying to merge {model} with {map_model}")
             try:
-                success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, **abs_pose_conf)
+                success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, ransac_conf=abs_pose_conf)
                 merges += success
             except Exception as e:
                 print(e)
