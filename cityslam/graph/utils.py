@@ -1,4 +1,3 @@
-from genericpath import exists
 from pathlib import Path
 
 from natsort import natsorted
@@ -64,7 +63,7 @@ def get_graphs(super_graph):
     return sorted(graphs, key=len, reverse=True)
 
 
-def transform_models(models, outputs, graph, base_node=None, visualize=False, save=True):
+def transform_models(models, outputs, graph, base_node=None, visualize=False, save=True, points=False):
     # Set this to the first node in the chain!
     if base_node is None:
         base_node = natsorted(list(graph.nodes))[0]
@@ -90,7 +89,7 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
     
     if visualize:
         fig = viz_3d.init_figure()
-        viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=False, cs=0.2)
+        viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=points, cs=0.2)
 
     nx.set_node_attributes(G_t, [[]], "ancestors")
     for parent, child, _ in nx.edge_dfs(G_t, base_node, orientation='original'):
@@ -131,7 +130,7 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
                 m.write(model_dir)
             
             if visualize:
-                viz_3d.plot_reconstruction(fig, m, color=rand_color(), name=child, points=False, cs=0.2)
+                viz_3d.plot_reconstruction(fig, m, color=rand_color(), name=child, points=points, cs=0.2)
     
     if visualize:
         fig.show()

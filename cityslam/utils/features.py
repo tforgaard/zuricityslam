@@ -59,37 +59,9 @@ def update_features(feature_file, output, overwrite=False):
     return output_feature_path
 
 
-def create_joint_feature_file(output, models_path, models_list, type="features"):
+def create_joint_feature_file(output, feature_list):
 
-    if isinstance(models_list, str):
-        models_list = [models_list]
+    for feature_file in feature_list:
+        joint_path = update_features(feature_file, output, overwrite=True)
 
-    for model_dir in Path(models_path).iterdir():
-        if model_dir.is_dir() and model_dir.name in models_list:
-
-            if type == "features":
-                feature_file = next(model_dir.glob("feats-superpoint-n4096-r1024.h5"), None)
-
-                if feature_file is not None:
-                    update_features(feature_file, output, overwrite=True)
-
-            elif type == "descriptors":
-                retrieval_file = next(model_dir.glob("global-feats*.h5"), None)
-
-                if retrieval_file is not None:
-                    update_features(retrieval_file, output, overwrite=True)
-
-    return next(output.glob("feats*.h5"), None)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--output', type=Path, default='/cluster/home/tforgaard/Projects/zuricityslam/base/outputs/test/tmp',
-                        help='Path to the output directory, default: %(default)s')
-    parser.add_argument('--models_path', type=Path,
-                        default='/cluster/home/tforgaard/Projects/zuricityslam/base/outputs/models')
-    parser.add_argument('--models_list', nargs="+", type=str, default=None)
-
-    args = parser.parse_args()
-
-    create_joint_feature_file(**args.__dict__)
+    return joint_path

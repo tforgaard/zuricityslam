@@ -65,7 +65,7 @@ def main(models, output_dir, target, reference, ransac_conf = {}, overwrite=Fals
 
     # Path to joint local features
     # Creating joint feature file necessary for localization
-    features_joint = create_joint_feature_file(outputs, models, [target.parts[0], reference.parts[0]], type='features')
+    features_joint = create_joint_feature_file(outputs, [features_target, features_ref])
 
     # Create a text file containing query images names and camera parameters
     queries_file = outputs / f'{target_name}_queries_with_intrinsics.txt'
