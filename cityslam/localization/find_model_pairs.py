@@ -135,7 +135,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--models', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-features',
                         help='Path to the models, searched recursively, default: %(default)s')
-    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/models-scores',
+    parser.add_argument('--outputs', type=Path, default='/cluster/project/infk/courses/252-0579-00L/group07/outputs/merge',
                         help='Output path, default: %(default)s')
     parser.add_argument('--models_mask', nargs="+", default=None,
                         help='Only include given models: %(default)s')

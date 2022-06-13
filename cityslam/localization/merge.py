@@ -59,7 +59,7 @@ def main(models, outputs, models_mask=None, only_sequential=False, scores=False,
                 continue
             if only_sequential and not sequential_models(target, reference):
                 continue
-            if transform_exists(super_graph, target, reference) and not overwrite:
+            if transform_exists(super_graph, target_name, reference_name) and not overwrite:
                 continue
 
             logger.info(f"trying to merge target: {target} and reference {reference}")
@@ -126,8 +126,11 @@ def try_merge_model_w_map(models_dir, output_dir, model, map, abs_pose_conf, ove
                 continue
 
             logger.info(f"trying to merge {model} with {map_model}")
-            success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, **abs_pose_conf)
-            merges += success
+            try:
+                success = abs_pose_estimation.main(models_dir, output_dir, target=model, reference=map_model, overwrite=overwrite, visualize=visualize, **abs_pose_conf)
+                merges += success
+            except Exception as e:
+                print(e)
             if merges >= max_merges:
                 logger.info(f"found max ({max_merges}) amount of merges! Stopping")
                 break
