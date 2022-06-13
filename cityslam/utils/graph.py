@@ -81,7 +81,9 @@ def get_tf(G, parent, child):
     
     return transform
 
-def transform_models(models, outputs, graph, base_node=None, visualize=False, save=True):
+
+def transform_models(models, outputs, graph, base_node=None, visualize=False, save=True, points=False):
+    # Set this to the first node in the chain!
     if base_node is None:
         base_node = natsorted(list(graph.nodes))[0]
 
@@ -104,7 +106,7 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
 
     if visualize:
         fig = viz_3d.init_figure()
-        viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=False, cs=0.2)
+        viz_3d.plot_reconstruction(fig, b, color=rand_color(), name=base_node, points=points, cs=0.2)
 
     for parent, child in nx.bfs_edges(G.to_undirected(as_view=True), base_node, reverse=False):
         if not G.nodes[child]['visited']:
@@ -144,7 +146,7 @@ def transform_models(models, outputs, graph, base_node=None, visualize=False, sa
                 m.write(model_dir)
             
             if visualize:
-                viz_3d.plot_reconstruction(fig, m, color=rand_color(), name=child, points=False, cs=0.2)
+                viz_3d.plot_reconstruction(fig, m, color=rand_color(), name=child, points=points, cs=0.2)
     
     if visualize:
         fig.show()
