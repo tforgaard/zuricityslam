@@ -33,6 +33,11 @@ $ pip3 install -e .
 ```
 to install cityslam
 
+
+### Videointerface Youtube API Key
+To use the videointerface you need a Youtube API Key, follow this guide:
+[getting started](https://developers.google.com/youtube/v3/getting-started)
+
 ## Run this project
 
 ### Run simple demo of cityslam pipeline
