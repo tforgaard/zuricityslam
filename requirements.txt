@@ -1,6 +1,6 @@
 google_api_python_client==2.44.0
 matplotlib==3.5.1
-pycolmap==0.2.0
+pycolmap==0.3.0
 filelock==3.6.0
 h5py
 natsort
