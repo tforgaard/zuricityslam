@@ -1,6 +1,18 @@
 # ZüriCity-SLAM
 ## Introduction
-This project tries to reconstruct Zürich from Youtube videos
+
+This project presents a pipeline to reconstruct cities from
+publicly available YouTube videos. The pipeline is built upon [hloc](https://github.com/cvg/Hierarchical-Localization) and COLMAP.
+
+![pipeline](doc/pipeline/pipeline.png)
+
+
+## Result excerpts
+
+Example of merged reconstructions from the video [2obsKLoZQdU](https://www.youtube.com/watch?v=2obsKLoZQdU)
+
+
+![2obs/nomal](doc/results/2obsKLoZQdU/snapshot01.png) ![2obs/nomal](doc/results/2obsKLoZQdU/snapshot05.png)
 
 ## Prerequisites
 Project is created with
@@ -73,9 +85,6 @@ $ python3 -m cityslam.mapping.reconstruction --dataset $SINGLE_VIDEO_PATH
 $ python3 -m cityslam.localization.merge --models $MODELS_PATH --graphs $MERGE_PATH
 ```
 
-## Euler scripts
-See [euler](./euler.md)
-
 ## Folder structure
 
 ```
@@ -125,11 +134,15 @@ Each main folder typically contain a separate folder / file for each video, name
 - merge.py: Tries to merge all models 
 
 
-### HLOC_fork
+### hloc_fork
 - We forked HLoc as some parts fit better within HLoc, we added
 - pairs_from_sequential.py: generate sequential pairs, optionally with retrieval as well
 - pairs_from_retrieval_resampling.py: Run retrieval routine with resampling to find better pairs
 
 
 
+## Further improvements
 
+- More robust model merging
+- faster reconstruction by switching out COLMAP with COLMAPSLAM
+- pose graph optimization of merged models
