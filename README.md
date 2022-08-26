@@ -21,7 +21,7 @@ Project is created with
 ## Set up
 Clone this repository:
 ```
-$ git clone --recursive git@gitlab.ethz.ch:z-ricityslam/zuricityslam.git
+$ git clone --recursive git@github.com:tforgaard/zuricityslam.git
 $ git submodule update --init --recursive
 ```
 
